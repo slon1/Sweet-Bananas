@@ -22,7 +22,16 @@ namespace SweetBananas.Services
                 return;
             }
 
-            Data = JsonUtility.FromJson<SaveData>(PlayerPrefs.GetString(Key)) ?? new SaveData();
+            try
+            {
+                var json = PlayerPrefs.GetString(Key);
+                Data = JsonUtility.FromJson<SaveData>(json) ?? new SaveData();
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"Failed to load save data from '{Key}': {ex.Message}");
+                Data = new SaveData();
+            }
         }
 
         public void Save()

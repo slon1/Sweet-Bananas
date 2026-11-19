@@ -1,37 +1,7 @@
 fileFormatVersion: 2
 guid: 8971a43b603b7e84ea6550dd84d8ce20
 TextureImporter:
-  internalIDToNameTable:
-  - first:
-      213: 4494978973370282439
-    second: game18_0
-  - first:
-      213: -4428860133957075144
-    second: game18_1
-  - first:
-      213: -4740983615785107399
-    second: game18_2
-  - first:
-      213: 3674628451583997205
-    second: game18_3
-  - first:
-      213: 7912429381644191917
-    second: game18_4
-  - first:
-      213: 5938902541662750349
-    second: game18_5
-  - first:
-      213: -6195839584038035528
-    second: game18_6
-  - first:
-      213: 1721236182592485827
-    second: game18_7
-  - first:
-      213: -2691752723220858181
-    second: game18_8
-  - first:
-      213: 7668172088139064174
-    second: game18_9
+  internalIDToNameTable: []
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -73,7 +43,7 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 2
+  spriteMode: 1
   spriteExtrude: 1
   spriteMeshType: 1
   alignment: 0
@@ -138,232 +108,12 @@ TextureImporter:
     forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
-    sprites:
-    - serializedVersion: 2
-      name: game18_0
-      rect:
-        serializedVersion: 2
-        x: 1
-        y: 6
-        width: 722
-        height: 639
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 7c1f5949f8f516e30800000000000000
-      internalID: 4494978973370282439
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game18_1
-      rect:
-        serializedVersion: 2
-        x: 150
-        y: 583
-        width: 9
-        height: 13
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 83f799b5c278982c0800000000000000
-      internalID: -4428860133957075144
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game18_2
-      rect:
-        serializedVersion: 2
-        x: 594
-        y: 573
-        width: 25
-        height: 31
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 9308e2f2584a43eb0800000000000000
-      internalID: -4740983615785107399
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game18_3
-      rect:
-        serializedVersion: 2
-        x: 604
-        y: 595
-        width: 34
-        height: 39
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 51535329b17eef230800000000000000
-      internalID: 3674628451583997205
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game18_4
-      rect:
-        serializedVersion: 2
-        x: 620
-        y: 577
-        width: 24
-        height: 25
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: da8044bc9989ecd60800000000000000
-      internalID: 7912429381644191917
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game18_5
-      rect:
-        serializedVersion: 2
-        x: 627
-        y: 535
-        width: 79
-        height: 76
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: d86097f55683b6250800000000000000
-      internalID: 5938902541662750349
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game18_6
-      rect:
-        serializedVersion: 2
-        x: 632
-        y: 451
-        width: 102
-        height: 80
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 8bfdb1ca9b4f30aa0800000000000000
-      internalID: -6195839584038035528
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game18_7
-      rect:
-        serializedVersion: 2
-        x: 683
-        y: 331
-        width: 31
-        height: 29
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 3c979f5403f03e710800000000000000
-      internalID: 1721236182592485827
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game18_8
-      rect:
-        serializedVersion: 2
-        x: 683
-        y: 52
-        width: 10
-        height: 13
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: bbafa35e829f4aad0800000000000000
-      internalID: -2691752723220858181
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game18_9
-      rect:
-        serializedVersion: 2
-        x: 572
-        y: 41
-        width: 8
-        height: 9
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: e63281ee2e1da6a60800000000000000
-      internalID: 7668172088139064174
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
+    sprites: []
     outline: []
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 5e97eb03825dee720800000000000248
     internalID: 0
     vertices: []
     indices: 
@@ -372,17 +122,7 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable:
-      game18_0: 4494978973370282439
-      game18_1: -4428860133957075144
-      game18_2: -4740983615785107399
-      game18_3: 3674628451583997205
-      game18_4: 7912429381644191917
-      game18_5: 5938902541662750349
-      game18_6: -6195839584038035528
-      game18_7: 1721236182592485827
-      game18_8: -2691752723220858181
-      game18_9: 7668172088139064174
+    nameFileIdTable: {}
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

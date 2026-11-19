@@ -21,3 +21,25 @@ MonoBehaviour:
   RewardFirstThrowBonus: 5
   SkinPrice: 10
   FailMarginUnits: 1
+  GravityY: -9.81
+  FixedDeltaTime: 0.016666668
+  VelocityIterations: 12
+  PositionIterations: 6
+  SegmentCount: 8
+  SegmentMass: 0.2
+  JointLimitDeg: 65
+  RestoreK: 2
+  RestoreC: 0.2
+  RibbonFriction: 0.9
+  RibbonBounciness: 0.05
+  StickFriction: 0.2
+  TargetFriction: 0.9
+  RibbonLinearDamping: 0.1
+  RibbonAngularDamping: 0.5
+  RestAngleDeg: -25
+  TapPeakAngleDeg: 35
+  HoldAngleDeg: 0
+  TapSpeedDegPerSec: 600
+  ReturnSpeedDegPerSec: 360
+  HoldRiseSpeedDegPerSec: 180
+  HoldThresholdSeconds: 0.15

@@ -1,28 +1,7 @@
 fileFormatVersion: 2
 guid: e38a0c07e744aeb4295fcc553f70b3e6
 TextureImporter:
-  internalIDToNameTable:
-  - first:
-      213: -292123006539287846
-    second: game25_0
-  - first:
-      213: 1393611553314780613
-    second: game25_1
-  - first:
-      213: -7189029103421285136
-    second: game25_2
-  - first:
-      213: -2609386941711576709
-    second: game25_3
-  - first:
-      213: 8718331854608386090
-    second: game25_4
-  - first:
-      213: -1650351595596532937
-    second: game25_5
-  - first:
-      213: 8199983433853300887
-    second: game25_6
+  internalIDToNameTable: []
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -64,7 +43,7 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 2
+  spriteMode: 1
   spriteExtrude: 1
   spriteMeshType: 1
   alignment: 0
@@ -129,166 +108,12 @@ TextureImporter:
     forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
-    sprites:
-    - serializedVersion: 2
-      name: game25_0
-      rect:
-        serializedVersion: 2
-        x: 6
-        y: 34
-        width: 735
-        height: 614
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: ad2b18c5cab22fbf0800000000000000
-      internalID: -292123006539287846
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game25_1
-      rect:
-        serializedVersion: 2
-        x: 233
-        y: 22
-        width: 8
-        height: 12
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 5c53536f25a175310800000000000000
-      internalID: 1393611553314780613
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game25_2
-      rect:
-        serializedVersion: 2
-        x: 240
-        y: 29
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 0fc11aa9e107b3c90800000000000000
-      internalID: -7189029103421285136
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game25_3
-      rect:
-        serializedVersion: 2
-        x: 246
-        y: 30
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: b711db1d66899cbd0800000000000000
-      internalID: -2609386941711576709
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game25_4
-      rect:
-        serializedVersion: 2
-        x: 244
-        y: 23
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: a28c7eb41acbdf870800000000000000
-      internalID: 8718331854608386090
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game25_5
-      rect:
-        serializedVersion: 2
-        x: 254
-        y: 25
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 73338fdb7f5c819e0800000000000000
-      internalID: -1650351595596532937
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game25_6
-      rect:
-        serializedVersion: 2
-        x: 260
-        y: 26
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 790f9eadc713cc170800000000000000
-      internalID: 8199983433853300887
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
+    sprites: []
     outline: []
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 5e97eb03825dee720800000000000248
     internalID: 0
     vertices: []
     indices: 
@@ -297,14 +122,7 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable:
-      game25_0: -292123006539287846
-      game25_1: 1393611553314780613
-      game25_2: -7189029103421285136
-      game25_3: -2609386941711576709
-      game25_4: 8718331854608386090
-      game25_5: -1650351595596532937
-      game25_6: 8199983433853300887
+    nameFileIdTable: {}
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

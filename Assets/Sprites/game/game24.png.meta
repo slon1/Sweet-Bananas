@@ -1,16 +1,7 @@
 fileFormatVersion: 2
 guid: 66bffc76daa15854dacc21039a0f1114
 TextureImporter:
-  internalIDToNameTable:
-  - first:
-      213: -889226403423785031
-    second: game24_0
-  - first:
-      213: -7103085180655650482
-    second: game24_1
-  - first:
-      213: 2455090388622074747
-    second: game24_2
+  internalIDToNameTable: []
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -52,7 +43,7 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 2
+  spriteMode: 1
   spriteExtrude: 1
   spriteMeshType: 1
   alignment: 0
@@ -117,78 +108,12 @@ TextureImporter:
     forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
-    sprites:
-    - serializedVersion: 2
-      name: game24_0
-      rect:
-        serializedVersion: 2
-        x: 0
-        y: 0
-        width: 741
-        height: 648
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 9bfe6032c45d8a3f0800000000000000
-      internalID: -889226403423785031
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game24_1
-      rect:
-        serializedVersion: 2
-        x: 311
-        y: 0
-        width: 67
-        height: 8
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: e49bda579a5cc6d90800000000000000
-      internalID: -7103085180655650482
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game24_2
-      rect:
-        serializedVersion: 2
-        x: 357
-        y: 25
-        width: 9
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: b736b4963bb321220800000000000000
-      internalID: 2455090388622074747
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
+    sprites: []
     outline: []
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 5e97eb03825dee720800000000000248
     internalID: 0
     vertices: []
     indices: 
@@ -197,10 +122,7 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable:
-      game24_0: -889226403423785031
-      game24_1: -7103085180655650482
-      game24_2: 2455090388622074747
+    nameFileIdTable: {}
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

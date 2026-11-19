@@ -1,19 +1,7 @@
 fileFormatVersion: 2
 guid: f2eb6c06785b2b043ba60a4d3b2c478f
 TextureImporter:
-  internalIDToNameTable:
-  - first:
-      213: 992223351502771019
-    second: game03_0
-  - first:
-      213: -8860234421161922412
-    second: game03_1
-  - first:
-      213: 6952192885150052399
-    second: game03_2
-  - first:
-      213: 2121072660318675206
-    second: game03_3
+  internalIDToNameTable: []
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -55,7 +43,7 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 2
+  spriteMode: 1
   spriteExtrude: 1
   spriteMeshType: 1
   alignment: 0
@@ -120,100 +108,12 @@ TextureImporter:
     forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
-    sprites:
-    - serializedVersion: 2
-      name: game03_0
-      rect:
-        serializedVersion: 2
-        x: 0
-        y: 0
-        width: 741
-        height: 648
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: b439b2491e515cd00800000000000000
-      internalID: 992223351502771019
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game03_1
-      rect:
-        serializedVersion: 2
-        x: 39
-        y: 0
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 49074fbccbf1a0580800000000000000
-      internalID: -8860234421161922412
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game03_2
-      rect:
-        serializedVersion: 2
-        x: 157
-        y: 0
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: f20fd5148962b7060800000000000000
-      internalID: 6952192885150052399
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game03_3
-      rect:
-        serializedVersion: 2
-        x: 163
-        y: 0
-        width: 35
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 601661db8509f6d10800000000000000
-      internalID: 2121072660318675206
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
+    sprites: []
     outline: []
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 5e97eb03825dee720800000000000248
     internalID: 0
     vertices: []
     indices: 
@@ -222,11 +122,7 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable:
-      game03_0: 992223351502771019
-      game03_1: -8860234421161922412
-      game03_2: 6952192885150052399
-      game03_3: 2121072660318675206
+    nameFileIdTable: {}
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

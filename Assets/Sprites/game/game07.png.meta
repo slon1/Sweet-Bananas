@@ -1,16 +1,7 @@
 fileFormatVersion: 2
 guid: ab047cf4fb335784097f863a38738f84
 TextureImporter:
-  internalIDToNameTable:
-  - first:
-      213: -7973941067039990377
-    second: game07_0
-  - first:
-      213: 6115309454760637728
-    second: game07_1
-  - first:
-      213: 2296839570923999218
-    second: game07_2
+  internalIDToNameTable: []
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -52,7 +43,7 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 2
+  spriteMode: 1
   spriteExtrude: 1
   spriteMeshType: 1
   alignment: 0
@@ -117,78 +108,12 @@ TextureImporter:
     forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
-    sprites:
-    - serializedVersion: 2
-      name: game07_0
-      rect:
-        serializedVersion: 2
-        x: 0
-        y: 72
-        width: 741
-        height: 576
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 79d9e27e8ded65190800000000000000
-      internalID: -7973941067039990377
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game07_1
-      rect:
-        serializedVersion: 2
-        x: 77
-        y: 72
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 025789e7c81fdd450800000000000000
-      internalID: 6115309454760637728
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game07_2
-      rect:
-        serializedVersion: 2
-        x: 153
-        y: 72
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 2ff4cfaab6300ef10800000000000000
-      internalID: 2296839570923999218
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
+    sprites: []
     outline: []
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 5e97eb03825dee720800000000000248
     internalID: 0
     vertices: []
     indices: 
@@ -197,10 +122,7 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable:
-      game07_0: -7973941067039990377
-      game07_1: 6115309454760637728
-      game07_2: 2296839570923999218
+    nameFileIdTable: {}
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -1,34 +1,7 @@
 fileFormatVersion: 2
 guid: 8405050806ecfdc40859bef6fd3f92fc
 TextureImporter:
-  internalIDToNameTable:
-  - first:
-      213: 6856556353400080551
-    second: game02_0
-  - first:
-      213: 7185227436926349900
-    second: game02_1
-  - first:
-      213: 7736942572516213348
-    second: game02_2
-  - first:
-      213: -1317606286881172489
-    second: game02_3
-  - first:
-      213: 928350453476990496
-    second: game02_4
-  - first:
-      213: 2558294623827360699
-    second: game02_5
-  - first:
-      213: -5928480606205599505
-    second: game02_6
-  - first:
-      213: 5441445823822617290
-    second: game02_7
-  - first:
-      213: -5043179473009607614
-    second: game02_8
+  internalIDToNameTable: []
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -70,7 +43,7 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 2
+  spriteMode: 1
   spriteExtrude: 1
   spriteMeshType: 1
   alignment: 0
@@ -135,210 +108,12 @@ TextureImporter:
     forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
-    sprites:
-    - serializedVersion: 2
-      name: game02_0
-      rect:
-        serializedVersion: 2
-        x: 0
-        y: 0
-        width: 741
-        height: 648
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 7a80cd20da1672f50800000000000000
-      internalID: 6856556353400080551
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game02_1
-      rect:
-        serializedVersion: 2
-        x: 0
-        y: 487
-        width: 61
-        height: 112
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: c42b260f84e07b360800000000000000
-      internalID: 7185227436926349900
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game02_2
-      rect:
-        serializedVersion: 2
-        x: 717
-        y: 551
-        width: 24
-        height: 14
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 4620d6217442f5b60800000000000000
-      internalID: 7736942572516213348
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game02_3
-      rect:
-        serializedVersion: 2
-        x: 726
-        y: 560
-        width: 8
-        height: 11
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 7f350a4201ce6bde0800000000000000
-      internalID: -1317606286881172489
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game02_4
-      rect:
-        serializedVersion: 2
-        x: 0
-        y: 457
-        width: 7
-        height: 25
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 02e919e91d922ec00800000000000000
-      internalID: 928350453476990496
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game02_5
-      rect:
-        serializedVersion: 2
-        x: 703
-        y: 468
-        width: 38
-        height: 72
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: bbb750ce763e08320800000000000000
-      internalID: 2558294623827360699
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game02_6
-      rect:
-        serializedVersion: 2
-        x: 728
-        y: 449
-        width: 9
-        height: 10
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: fe0a2519c4ec9bda0800000000000000
-      internalID: -5928480606205599505
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game02_7
-      rect:
-        serializedVersion: 2
-        x: 695
-        y: 118
-        width: 38
-        height: 46
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: acada719526e38b40800000000000000
-      internalID: 5441445823822617290
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: game02_8
-      rect:
-        serializedVersion: 2
-        x: 728
-        y: 143
-        width: 8
-        height: 20
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 24c78bc3df6030ab0800000000000000
-      internalID: -5043179473009607614
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
+    sprites: []
     outline: []
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 5e97eb03825dee720800000000000248
     internalID: 0
     vertices: []
     indices: 
@@ -347,16 +122,7 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable:
-      game02_0: 6856556353400080551
-      game02_1: 7185227436926349900
-      game02_2: 7736942572516213348
-      game02_3: -1317606286881172489
-      game02_4: 928350453476990496
-      game02_5: 2558294623827360699
-      game02_6: -5928480606205599505
-      game02_7: 5441445823822617290
-      game02_8: -5043179473009607614
+    nameFileIdTable: {}
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

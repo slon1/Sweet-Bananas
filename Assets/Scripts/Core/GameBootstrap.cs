@@ -19,6 +19,12 @@ namespace SweetBananas.Core
         {
             QualitySettings.vSyncCount = 0;
             Application.targetFrameRate = _config.TargetFrameRate;
+
+            Physics2D.gravity = new Vector2(0f, _config.GravityY);
+            Time.fixedDeltaTime = _config.FixedDeltaTime;
+            Physics2D.velocityIterations = _config.VelocityIterations;
+            Physics2D.positionIterations = _config.PositionIterations;
+
             _flow.SetState(GameState.Playing);
         }
     }
