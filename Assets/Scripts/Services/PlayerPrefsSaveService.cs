@@ -1,0 +1,37 @@
+using SweetBananas.Data;
+using UnityEngine;
+
+namespace SweetBananas.Services
+{
+    public sealed class PlayerPrefsSaveService : ISaveService
+    {
+        public const string Key = "save_v1";
+
+        public SaveData Data { get; private set; }
+
+        public PlayerPrefsSaveService()
+        {
+            Load();
+        }
+
+        public void Load()
+        {
+            if (!PlayerPrefs.HasKey(Key))
+            {
+                Data = new SaveData();
+                return;
+            }
+
+            Data = JsonUtility.FromJson<SaveData>(PlayerPrefs.GetString(Key)) ?? new SaveData();
+        }
+
+        public void Save()
+        {
+            if (Data == null)
+                Data = new SaveData();
+
+            PlayerPrefs.SetString(Key, JsonUtility.ToJson(Data));
+            PlayerPrefs.Save();
+        }
+    }
+}
