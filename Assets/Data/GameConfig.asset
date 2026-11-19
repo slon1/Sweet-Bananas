@@ -22,24 +22,27 @@ MonoBehaviour:
   SkinPrice: 10
   FailMarginUnits: 1
   GravityY: -9.81
-  FixedDeltaTime: 0.016666668
-  VelocityIterations: 12
-  PositionIterations: 6
+  FixedDeltaTime: 0.008333334
+  VelocityIterations: 24
+  PositionIterations: 12
   SegmentCount: 8
   SegmentMass: 0.2
   JointLimitDeg: 65
   RestoreK: 2
   RestoreC: 0.2
   RibbonFriction: 0.9
-  RibbonBounciness: 0.05
-  StickFriction: 0.2
+  RibbonBounciness: 0.02
+  StickFriction: 0.4
   TargetFriction: 0.9
-  RibbonLinearDamping: 0.1
-  RibbonAngularDamping: 0.5
+  RibbonLinearDamping: 0.8
+  RibbonAngularDamping: 1.2
   RestAngleDeg: -25
   TapPeakAngleDeg: 35
   HoldAngleDeg: 0
-  TapSpeedDegPerSec: 600
+  TapSpeedDegPerSec: 320
   ReturnSpeedDegPerSec: 360
   HoldRiseSpeedDegPerSec: 180
   HoldThresholdSeconds: 0.15
+  MaxRotationSpeed: 1200
+  RibbonColliderThickness: 0.3
+  RibbonSpawnFraction: 0.25

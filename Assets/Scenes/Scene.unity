@@ -521,6 +521,139 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &901037796
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 901037798}
+  - component: {fileID: 901037797}
+  m_Layer: 0
+  m_Name: SpikeOverlay
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &901037797
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 901037796}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a07f8b91aa0a924f872922c850726bc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SweetBananas.Game.Debug.SpikeOverlay
+  _hudRoot: {fileID: 455819568}
+--- !u!4 &901037798
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 901037796}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1886723924}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1186352895
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1186352896}
+  - component: {fileID: 1186352897}
+  m_Layer: 0
+  m_Name: ThrowController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1186352896
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1186352895}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1886723924}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1186352897
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1186352895}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf71c9025dbd7874dae43f3b0cd3bd99, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SweetBananas.Game.ThrowController
+--- !u!1 &1200543894
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1200543895}
+  - component: {fileID: 1200543896}
+  m_Layer: 0
+  m_Name: Ribbon
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1200543895
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1200543894}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1886723924}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1200543896
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1200543894}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a52d5f7ea157fc418eb267d539f3a8f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SweetBananas.Game.Ribbon
 --- !u!1 &1402095094
 GameObject:
   m_ObjectHideFlags: 0
@@ -606,6 +739,160 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!1 &1449499475
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1449499476}
+  - component: {fileID: 1449499478}
+  - component: {fileID: 1449499477}
+  m_Layer: 0
+  m_Name: Lollipop
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1449499476
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1449499475}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.34, y: 8.96, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1886723924}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!50 &1449499477
+Rigidbody2D:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1449499475}
+  m_BodyType: 1
+  m_Simulated: 1
+  m_UseFullKinematicContacts: 1
+  m_UseAutoMass: 0
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_GravityScale: 0
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_Interpolate: 1
+  m_SleepingMode: 1
+  m_CollisionDetection: 1
+  m_Constraints: 0
+--- !u!114 &1449499478
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1449499475}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc1520dced600ff47aede813bd53fcef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SweetBananas.Game.Lollipop
+  _poses:
+  - Sprite: {fileID: 21300000, guid: 03d7f44cb14eaa541b152913f6360d96, type: 3}
+    StickAxisDegrees: -90.57
+    VisualLocalZ: 90.57
+    StickLengthUnits: 4.726
+    HeadRadiusUnits: 1.785
+    StickThicknessUnits: 0.296
+    HeadCenterOffsetUnits: 0.0003
+  - Sprite: {fileID: 21300000, guid: 86240529843be304aaa6f35c60018d12, type: 3}
+    StickAxisDegrees: -89.49
+    VisualLocalZ: 89.49
+    StickLengthUnits: 4.816
+    HeadRadiusUnits: 1.815
+    StickThicknessUnits: 0.314
+    HeadCenterOffsetUnits: 0.0002
+  - Sprite: {fileID: 21300000, guid: ee0f4514e4c3dec469b490ac716dccb9, type: 3}
+    StickAxisDegrees: -88.9
+    VisualLocalZ: 88.9
+    StickLengthUnits: 4.807
+    HeadRadiusUnits: 1.808
+    StickThicknessUnits: 0.313
+    HeadCenterOffsetUnits: 0.0189
+  - Sprite: {fileID: 21300000, guid: 40c8332196419ba4f9ccd5ca93ff20b9, type: 3}
+    StickAxisDegrees: -91.05
+    VisualLocalZ: 91.05
+    StickLengthUnits: 4.787
+    HeadRadiusUnits: 1.732
+    StickThicknessUnits: 0.298
+    HeadCenterOffsetUnits: 0.0433
+  _activePose: 0
+  _visual: {fileID: 0}
+  _renderer: {fileID: 0}
+  _head: {fileID: 0}
+  _stick: {fileID: 0}
+--- !u!1 &1681497434
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1681497435}
+  - component: {fileID: 1681497436}
+  m_Layer: 0
+  m_Name: RibbonMesh
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1681497435
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1681497434}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1886723924}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1681497436
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1681497434}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9cd22b8306e6a424489c735dfa12500d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SweetBananas.Game.RibbonMesh
+  _visualThickness: 1.17
+  _uvMin: {x: 0.022535, y: 0.016807}
+  _uvMax: {x: 0.977465, y: 1}
+  _material: {fileID: 2100000, guid: 1f50003265c655d489d8e386a5f8081a, type: 2}
 --- !u!1 &1826671405
 GameObject:
   m_ObjectHideFlags: 0
@@ -636,6 +923,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cf0b28f28dd873c4fb394b3df093b3ab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SweetBananas.Core.GameSceneInstaller
+  _lollipop: {fileID: 1449499478}
+  _throwController: {fileID: 1186352897}
+  _ribbon: {fileID: 1200543896}
+  _ribbonMesh: {fileID: 1681497436}
+  _spikeOverlay: {fileID: 901037797}
 --- !u!114 &1826671407
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -711,7 +1003,12 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1449499476}
+  - {fileID: 1186352896}
+  - {fileID: 1200543895}
+  - {fileID: 1681497435}
+  - {fileID: 901037798}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1912100254

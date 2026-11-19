@@ -24,6 +24,7 @@ namespace SweetBananas.Core
             Time.fixedDeltaTime = _config.FixedDeltaTime;
             Physics2D.velocityIterations = _config.VelocityIterations;
             Physics2D.positionIterations = _config.PositionIterations;
+            Physics2D.maxRotationSpeed = _config.MaxRotationSpeed;
 
             _flow.SetState(GameState.Playing);
         }

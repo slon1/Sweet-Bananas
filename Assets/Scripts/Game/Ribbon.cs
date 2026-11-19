@@ -1,0 +1,214 @@
+using System.Collections.Generic;
+using SweetBananas.Data;
+using UnityEngine;
+using Zenject;
+
+namespace SweetBananas.Game
+{
+    public sealed class Ribbon : MonoBehaviour
+    {
+        readonly List<Rigidbody2D> _bodies = new();
+        readonly List<CapsuleCollider2D> _colliders = new();
+        readonly List<HingeJoint2D> _joints = new();
+
+        GameConfig _config;
+        Lollipop _lollipop;
+        ThrowController _throw;
+        PhysicsMaterial2D _material;
+        float _segmentLength;
+        bool _built;
+
+        public IReadOnlyList<Rigidbody2D> Bodies => _bodies;
+        public IReadOnlyList<CapsuleCollider2D> Colliders => _colliders;
+        public IReadOnlyList<HingeJoint2D> Joints => _joints;
+        public float SegmentLength => _segmentLength;
+
+        public Vector2 Center
+        {
+            get
+            {
+                if (_bodies.Count == 0)
+                    return transform.position;
+                Vector2 sum = Vector2.zero;
+                for (int i = 0; i < _bodies.Count; i++)
+                    sum += _bodies[i].position;
+                return sum / _bodies.Count;
+            }
+        }
+
+        [Inject]
+        public void Construct(GameConfig config, Lollipop lollipop, ThrowController throwController)
+        {
+            _config = config;
+            _lollipop = lollipop;
+            _throw = throwController;
+        }
+
+        void Start()
+        {
+            Build();
+            ResetToSpawn();
+        }
+
+        public void ResetToSpawn(float? fraction = null)
+        {
+            if (!_built)
+                Build();
+            if (_throw != null)
+                _throw.SnapRest();
+            PlaceAlongStick(fraction ?? _config.RibbonSpawnFraction);
+        }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public void DebugPlace(Vector2 center, float angleDeg)
+        {
+            if (!_built)
+                Build();
+            PlaceStraight(center, angleDeg);
+        }
+#endif
+
+        void FixedUpdate()
+        {
+            if (!_built)
+                return;
+
+            float k = _config.RestoreK;
+            float c = _config.RestoreC;
+            for (int i = 0; i < _joints.Count; i++)
+            {
+                HingeJoint2D joint = _joints[i];
+                Rigidbody2D body = joint.attachedRigidbody;
+                Rigidbody2D other = joint.connectedBody;
+                if (body == null || other == null)
+                    continue;
+
+                float angleRad = joint.jointAngle * Mathf.Deg2Rad;
+                float speedRad = joint.jointSpeed * Mathf.Deg2Rad;
+                float tau = -k * angleRad - c * speedRad;
+                body.AddTorque(tau, ForceMode2D.Force);
+                other.AddTorque(-tau, ForceMode2D.Force);
+            }
+        }
+
+        void Build()
+        {
+            if (_built || _config == null)
+                return;
+
+            ClearSegments();
+            int count = Mathf.Max(2, _config.SegmentCount);
+            float ribbonLength = RibbonMesh.OpaqueLengthUnits;
+            _segmentLength = ribbonLength / count;
+            float thickness = _config.RibbonColliderThickness;
+
+            if (_material == null)
+                _material = new PhysicsMaterial2D("Ribbon");
+            _material.friction = _config.RibbonFriction;
+            _material.bounciness = _config.RibbonBounciness;
+
+            for (int i = 0; i < count; i++)
+            {
+                var go = new GameObject("Segment" + i);
+                go.transform.SetParent(transform, false);
+                var body = go.AddComponent<Rigidbody2D>();
+                body.bodyType = RigidbodyType2D.Dynamic;
+                body.mass = _config.SegmentMass;
+                body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+                body.interpolation = RigidbodyInterpolation2D.Interpolate;
+                body.linearDamping = _config.RibbonLinearDamping;
+                body.angularDamping = _config.RibbonAngularDamping;
+                body.gravityScale = 1f;
+                body.sleepMode = RigidbodySleepMode2D.NeverSleep;
+
+                var capsule = go.AddComponent<CapsuleCollider2D>();
+                capsule.direction = CapsuleDirection2D.Horizontal;
+                capsule.size = new Vector2(_segmentLength, thickness);
+                capsule.sharedMaterial = _material;
+
+                _bodies.Add(body);
+                _colliders.Add(capsule);
+            }
+
+            for (int i = 1; i < count; i++)
+            {
+                var joint = _bodies[i].gameObject.AddComponent<HingeJoint2D>();
+                joint.connectedBody = _bodies[i - 1];
+                joint.anchor = new Vector2(-_segmentLength * 0.5f, 0f);
+                joint.connectedAnchor = new Vector2(_segmentLength * 0.5f, 0f);
+                joint.useLimits = true;
+                joint.limits = new JointAngleLimits2D
+                {
+                    min = -_config.JointLimitDeg,
+                    max = _config.JointLimitDeg
+                };
+                joint.enableCollision = false;
+                _joints.Add(joint);
+            }
+
+            for (int i = 0; i < _colliders.Count; i++)
+            {
+                for (int j = i + 1; j < _colliders.Count; j++)
+                    Physics2D.IgnoreCollision(_colliders[i], _colliders[j], true);
+            }
+
+            _built = true;
+        }
+
+        void PlaceAlongStick(float fraction)
+        {
+            PointerPose pose = _lollipop.ActivePose;
+            Vector2 pivot = _lollipop.Pivot;
+            Vector2 dir = _lollipop.StickDirection();
+            Vector2 up = _lollipop.StickUp();
+            float along = fraction * pose.StickLengthUnits;
+            float ribbonHalf = _config.RibbonColliderThickness * 0.5f;
+            float stickHalf = pose.StickThicknessUnits * 0.5f;
+            float perp = stickHalf + ribbonHalf + 0.02f;
+            float headClear = pose.HeadRadiusUnits + ribbonHalf + 0.02f;
+            if (along < headClear)
+            {
+                float rise = Mathf.Sqrt(Mathf.Max(0f, headClear * headClear - along * along));
+                perp = Mathf.Max(perp, rise);
+            }
+
+            Vector2 center = pivot + dir * along + up * perp;
+            PlaceStraight(center, _lollipop.Angle);
+        }
+
+        void PlaceStraight(Vector2 center, float angleDeg)
+        {
+            float rad = angleDeg * Mathf.Deg2Rad;
+            Vector2 dir = new Vector2(Mathf.Cos(rad), Mathf.Sin(rad));
+            float total = _segmentLength * _bodies.Count;
+            Vector2 first = center - dir * (total * 0.5f - _segmentLength * 0.5f);
+            for (int i = 0; i < _bodies.Count; i++)
+            {
+                Rigidbody2D body = _bodies[i];
+                Vector2 pos = first + dir * (_segmentLength * i);
+                body.position = pos;
+                body.rotation = angleDeg;
+                body.linearVelocity = Vector2.zero;
+                body.angularVelocity = 0f;
+                body.WakeUp();
+            }
+
+            Physics2D.SyncTransforms();
+        }
+
+        void ClearSegments()
+        {
+            for (int i = transform.childCount - 1; i >= 0; i--)
+            {
+                if (Application.isPlaying)
+                    Destroy(transform.GetChild(i).gameObject);
+                else
+                    DestroyImmediate(transform.GetChild(i).gameObject);
+            }
+
+            _bodies.Clear();
+            _colliders.Clear();
+            _joints.Clear();
+        }
+    }
+}
