@@ -14,7 +14,7 @@
 
 ## D12. Слои отрисовки
 Sorting Layers (снизу вверх): `Background`, `World`, `Hud`.
-- `BackgroundCanvas` (ScreenSpace-Camera, sorting layer `Background`): `Image` с `game/bg.png`, `AspectRatioFitter` в режиме Envelope Parent (кадрирование без искажения).
+- `BackgroundCanvas` (ScreenSpace-Camera, sorting layer `Background`): `Image` с `game/bg.png`, размер **1080×2160**, якорь и pivot **снизу по центру** (`anchorMin = anchorMax = (0.5, 0)`, `pivot = (0.5, 0)`), без `AspectRatioFitter`. При Match = 0 ширина canvas всегда 1080, поэтому 1 px фона = 1 px макета и фон совпадает с мировыми координатами из D11. Экран выше 1:2 — над фоном видна верхняя заливка (цвет камеры = средний RGB верхней строки `bg.png` с весом по альфе, без полностью прозрачных пикселей); экран ниже 1:2 — верх фона обрезается. *Поправка к первой версии (Envelope Parent): он масштабировал фон отдельно от мира и сдвигал десерты относительно земли.*
 - Физические `SpriteRenderer`/меш — sorting layer `World`, внутри слоя порядок по `sortingOrder`.
 - `HudCanvas` (ScreenSpace-Camera, sorting layer `Hud`): HUD, магазин, попапы дочерними панелями. Поддержка safe area для верхней части (компонент `SafeAreaFitter` на корневой панели HUD).
 - Оба Canvas: Scale With Screen Size 1080×2160, Match = 0.

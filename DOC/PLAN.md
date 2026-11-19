@@ -21,4 +21,9 @@
 
 ## Статус
 - Этап 0: принят (коммит `TASK-000: environment check`, 2026-11-19). Замечания: manifest и lock расходятся по URP (решается в TASK-001), `play again.png` и документы ещё не в git (TASK-001, п. 0).
-- Этап 1: `Task/TASK-001-skeleton.md`.
+- Этап 1: принят с замечаниями (коммиты `docs: architect documents` и `TASK-001: project skeleton`); замечание по фону вынесено в TASK-002a, п. 0.
+- Этап 2a: `Task/TASK-002a-prep.md` (модель: Composer).
+- Этап 2: `Task/TASK-002-physics-spike.md`, `Adr/ADR-003-physics-spike.md` (модель: Grok), после принятия 2a.
+
+## Модели Cursor
+Каждое ТЗ содержит пометку «Модель для оператора». Grok — интеллектуальные и проектные задачи, Composer — технические и механические (дешевле).
