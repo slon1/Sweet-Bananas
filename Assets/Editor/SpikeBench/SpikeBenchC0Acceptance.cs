@@ -187,7 +187,7 @@ namespace SweetBananas.Editor.SpikeBench
             sb.AppendLine("mesh_capsule_center_offset=" + meshOffset.ToString(CultureInfo.InvariantCulture));
             sb.AppendLine("mesh_capsule_ok=" + (meshOffset <= 0.05f ? "1" : "0"));
             sb.AppendLine("last_spawn_lift=" + _ribbon.LastSpawnLift.ToString(CultureInfo.InvariantCulture));
-            sb.AppendLine("min_spawn_clearance_step0=" + _ribbon.MinSpawnClearanceDistance().ToString(CultureInfo.InvariantCulture));
+            sb.AppendLine("min_clearance_at_1s=" + _ribbon.MinSpawnClearanceDistance().ToString(CultureInfo.InvariantCulture));
             sb.AppendLine("mesh_capsule_center_offset_step0=" + _meshOffsetStep0.ToString(CultureInfo.InvariantCulture));
             sb.AppendLine("screenshot_note=after_A8");
             File.WriteAllText(Path.Combine(logDir, "c0_results.txt"), sb.ToString());

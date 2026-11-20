@@ -4,6 +4,12 @@ using Zenject;
 
 namespace SweetBananas.Game
 {
+    public enum LollipopDriveMode
+    {
+        MoveRotation,
+        AngularVelocity
+    }
+
     public sealed class Lollipop : MonoBehaviour
     {
         [SerializeField] PointerPose[] _poses;
@@ -17,6 +23,10 @@ namespace SweetBananas.Game
         PhysicsMaterial2D _stickMaterial;
         GameConfig _config;
         bool _collidersReady;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        LollipopDriveMode _driveMode = LollipopDriveMode.MoveRotation;
+#endif
 
         public PointerPose ActivePose => _poses[_activePose];
         public PointerPose[] Poses => _poses;
@@ -57,7 +67,38 @@ namespace SweetBananas.Game
 
         public void ApplyRotation(float degrees)
         {
-            _body.MoveRotation(degrees);
+            DriveToward(degrees, float.PositiveInfinity);
+        }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public void DebugSetDriveMode(LollipopDriveMode mode) => _driveMode = mode;
+
+        public LollipopDriveMode DebugDriveMode => _driveMode;
+
+        public float MeasuredAngularVelocityDegPerSec => _body != null ? _body.angularVelocity : 0f;
+#endif
+
+        public void DriveToward(float targetDegrees, float maxSpeedDegPerSec)
+        {
+            if (_body == null)
+                return;
+
+            float dt = Time.fixedDeltaTime;
+            float delta = Mathf.DeltaAngle(_body.rotation, targetDegrees);
+            if (Mathf.Abs(delta) <= 0.05f)
+            {
+                SnapRotation(targetDegrees);
+                return;
+            }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (_driveMode == LollipopDriveMode.AngularVelocity && maxSpeedDegPerSec < float.PositiveInfinity)
+            {
+                _body.angularVelocity = Mathf.Clamp(delta / dt, -maxSpeedDegPerSec, maxSpeedDegPerSec);
+                return;
+            }
+#endif
+            _body.MoveRotation(targetDegrees);
         }
 
         public void SnapRotation(float degrees)

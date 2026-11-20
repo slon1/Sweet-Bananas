@@ -219,7 +219,7 @@ F2.1–F2.2 **выполнены**.
 
 События first &gt; 0.21 (valid): throws 11, 18, 53, 60, 95 — все `contact`, пары 6, шаги 33/38.
 
-**Отрицательный C0 clearance:** на E0 invalid нет; гипотеза `Physics2D.SyncTransforms()` перед замером — **подкреплена данными** (без отдельного прогона).
+**C0 clearance @ 1 с:** поле переименовано в `min_clearance_at_1s` (покой на куполе, не спавн step0). Гипотеза `SyncTransforms` для C0 отрицательного значения — **непроверенная** (E0 invalid=0 — отдельный факт).
 
 ### verify1×
 
@@ -234,14 +234,66 @@ F2.1–F2.2 **выполнены**.
 
 ---
 
-## 9. Открытые пункты / стоп
+## 9. Amendment-8: H1–H3, E1 (диагностика и привод)
 
-1. **До A8 (история):** gap_sanity_pass=0 на 0.50@step5, smoke hold 0.25 A10 — overlap при старом спавне.
-2. **E2+** — по решению архитектора после E0.
+### H0
+`c0_results.txt`: `min_spawn_clearance_step0` → `min_clearance_at_1s`.
+
+### H2 — корреляция (E0 CSV `throws_E0_2760704_20261120_221256.csv`)
+| Срез | Счётчик |
+|------|---------|
+| valid | 120 |
+| (a) A10 &gt; 0.21 | 5 (все **tap**, spawn **0.90**, press 0.10×3 / 0.12×2) |
+| (b) бин 0.085–0.21 | 48 |
+| (c) `r_min` &lt; 0.35 | **18** (до колонки `r_min_phase` в этом прогоне; повторный анализ — по новому CSV) |
+
+Файл: `Logs/SpikeBench/e0_correlation.txt`.
+
+### H1 — трассы пяти разрывов @ 12×
+`trace_E0_{11,18,53,60,95}.csv`, выводы: `h1_conclusions.txt`.
+
+| throw | одна строка вывода |
+|-------|-------------------|
+| 11 | step 33, pair 6, seg6↔head, ω=0, contact, Return @ 12× |
+| 18 | step 38, pair 6, seg7↔head, ω=0, contact, Return |
+| 53 | step 33, pair 6, seg7↔head, ω=0, contact, Return |
+| 60 | **не воспроизведён** @ 12× (`reproduce_gt_0.21=0`); на **1× worst-verify** разрыв есть (см. H3) |
+| 95 | step 33, pair 6, seg7↔head, ω=0, contact, Return |
+
+### H3
+Стандартный **verify1×** (E0): строки в `summary_E0_verify1x_2760704_20261120_221256_verify1x.txt` (10 бросков, A10 match 10/10).
+
+**verify1x_worst** (5 разрывов + 5 max soft-bin): `summary_E0_verify1x_worst_2760704_20261120_223117.txt` — **на 1× разрывы воспроизводятся** (6/10 с A10, `worst_verify_a10_matches=9/10`; throw 59 soft-bin даёт A10 только на 1×).
+
+### E1 — V1 `angularVelocity` vs V0 (E0, `MoveRotation`)
+
+| Метрика (valid) | V0 E0 @ 12× | V1 E1 @ 12× |
+|-----------------|-------------|-------------|
+| A10 breaks | **5** | **5** |
+| бин 0.085–0.21 | **48** | 57 |
+| max_gap | **0.350** | 0.352 |
+| r_min min / median | 0.00076 / **0.556** | 0.0087 / 0.529 |
+
+**Ранжирование (1→3):** V0 **не хуже** (мягкий бин лучше; max_gap чуть лучше). **Оставляем MoveRotation** (V1 не выбран).
+
+**A1** (`a1_probe.txt`, клон конфига 600°/с, без diff `GameConfig.asset`): **max ω = 600°/с**, pass ≥ 570.
+
+**E1 играбельность:** `e1_max_tap_overshoot_deg=0`, hold=0, `return_to_rest` max ≈ 0.17 с.
+
+E1 CSV/summary: `throws_E1_2760704_20261120_223246.csv`, verify `summary_E1_verify1x_…_verify1x.txt`.
+
+**Стоп после E1** — E2 не начинать. C7/B6/B7 по-прежнему отложены.
 
 ---
 
-## 10. Где смотреть сырьё (оператор)
+## 10. Открытые пункты / стоп
+
+1. **До A8 (история):** gap_sanity_pass=0 на 0.50@step5, smoke hold 0.25 A10 — overlap при старом спавне.
+2. **E2+** — после E1; текущий привод **MoveRotation** (V1 не принят).
+
+---
+
+## 11. Где смотреть сырьё (оператор)
 
 | Артефакт | Путь |
 |----------|------|
@@ -251,6 +303,8 @@ F2.1–F2.2 **выполнены**.
 | Math | `Logs/SpikeBench/math_sanity.txt` |
 | Smoke / trace | `throws_smoke_*.csv`, `trace_smoke_*.csv` |
 | E0 | `throws_E0_*.csv`, `summary_E0_*.txt`, `summary_E0_verify1x_*.txt` |
+| H1 / H3 | `trace_E0_*.csv`, `h1_conclusions.txt`, `e0_correlation.txt`, `summary_E0_verify1x_worst_*.txt` |
+| E1 / A1 | `throws_E1_*.csv`, `summary_E1_*.txt`, `a1_probe.txt` |
 | D1 dump | `c0_joint_dump.txt` (большой) |
 
 При следующей вехе этот раздел REPORT обновлять и коммитить вместе с `DOC/reports/REPORT-002-A2.md`.

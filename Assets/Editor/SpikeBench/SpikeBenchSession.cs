@@ -112,9 +112,52 @@ namespace SweetBananas.Editor.SpikeBench
         static SpikeBenchTrace _trace;
         static int _throwPhysicsStep;
 
+        static LollipopDriveMode? _benchDriveMode;
+        static string _rMinPhaseAtMin = "";
+        static float _seriesMaxTapOvershoot;
+        static float _seriesMaxHoldOvershoot;
+        static float _seriesMaxReturnSec;
+        static string _worstVerifyMainCsv;
+
         public static bool IsRunning => _state != SessionState.Idle;
 
+        public static void StartE1()
+        {
+            Start("E1", SpikeBenchMethodology.DefaultSeed, SpikeBenchMethodology.BenchTimeScale,
+                SpikeBenchMethodology.SeriesTaps, SpikeBenchMethodology.SeriesHolds, verifyRealtime: true,
+                LollipopDriveMode.AngularVelocity, null);
+        }
+
+        public static void StartVerifyWorst(string mainE0CsvPath)
+        {
+            var main = SpikeBenchPlanBuilder.BuildSeriesPlans(
+                SpikeBenchMethodology.DefaultSeed,
+                SpikeBenchMethodology.SeriesTaps,
+                SpikeBenchMethodology.SeriesHolds);
+            var indices = new HashSet<int>(SpikeBenchE0Analysis.BreakThrowIndices);
+            foreach (int i in SpikeBenchE0Analysis.PickTopSoftBinThrowIndices(mainE0CsvPath, 5))
+                indices.Add(i);
+            var sorted = new List<int>(indices);
+            sorted.Sort();
+            _worstVerifyMainCsv = mainE0CsvPath;
+            Start("E0_verify1x_worst", SpikeBenchMethodology.DefaultSeed, 1f, 0, 0, false,
+                null, SpikeBenchPlanBuilder.PickPlansByIndices(main, sorted));
+        }
+
         public static void Start(string experimentId, int seed, float timeScale, int taps, int holds, bool verifyRealtime)
+        {
+            Start(experimentId, seed, timeScale, taps, holds, verifyRealtime, null, null);
+        }
+
+        public static void Start(
+            string experimentId,
+            int seed,
+            float timeScale,
+            int taps,
+            int holds,
+            bool verifyRealtime,
+            LollipopDriveMode? driveMode,
+            List<BenchThrowPlan> customPlans)
         {
             if (_state != SessionState.Idle)
             {
@@ -129,15 +172,24 @@ namespace SweetBananas.Editor.SpikeBench
             _holdCount = holds;
             _verifyRealtime = verifyRealtime;
             _isVerifyRun = false;
+            _benchDriveMode = driveMode;
             _runId = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
             _mainResults.Clear();
             _mainPlansForVerify.Clear();
+            _seriesMaxTapOvershoot = 0f;
+            _seriesMaxHoldOvershoot = 0f;
+            _seriesMaxReturnSec = 0f;
 
             SpikeBenchMethodology.WriteMethodologyArtifact(seed, experimentId, taps, holds);
             _plans.Clear();
-            _plans.AddRange(SpikeBenchPlanBuilder.BuildSeriesPlans(seed, taps, holds));
-            if (verifyRealtime)
-                _mainPlansForVerify.AddRange(_plans);
+            if (customPlans != null && customPlans.Count > 0)
+                _plans.AddRange(customPlans);
+            else
+            {
+                _plans.AddRange(SpikeBenchPlanBuilder.BuildSeriesPlans(seed, taps, holds));
+                if (verifyRealtime)
+                    _mainPlansForVerify.AddRange(_plans);
+            }
 
             EditorApplication.update += Tick;
 
@@ -177,6 +229,11 @@ namespace SweetBananas.Editor.SpikeBench
                 SpikeBenchMethodology.RMinExcludeAfterSpawnSec / _config.FixedDeltaTime));
 
             _overlay.AutoResetEnabled = false;
+            if (_lollipop != null)
+            {
+                _lollipop.DebugSetDriveMode(_benchDriveMode ?? LollipopDriveMode.MoveRotation);
+            }
+
             _throw.DebugSetDrive(true);
             _throw.DebugFixedStep += OnDebugFixedStep;
 
@@ -235,6 +292,8 @@ namespace SweetBananas.Editor.SpikeBench
             _firstGap085Step = -1;
             _firstGap021Step = -1;
             _throwPhysicsStep = 0;
+            _rMinPhaseAtMin = "";
+            _throw.DebugResetDriveMetrics();
             if (plan.Index == 0)
             {
                 _trace?.Dispose();
@@ -363,7 +422,10 @@ namespace SweetBananas.Editor.SpikeBench
                     float r = SpikeBenchMeasurements.ComputeR(_ribbon);
                     rSample = r;
                     if (!float.IsNaN(r) && r < _rMin)
+                    {
                         _rMin = r;
+                        _rMinPhaseAtMin = phaseName;
+                    }
                 }
             }
 
@@ -479,7 +541,15 @@ namespace SweetBananas.Editor.SpikeBench
                 _currentThrowInvalid,
                 _spawnAngle,
                 _spawnFixedStepsAtClearance,
-                _hingeSlackMax);
+                _hingeSlackMax,
+                _currentThrowInvalid ? "" : _rMinPhaseAtMin);
+
+            if (!_currentThrowInvalid && _throw != null)
+            {
+                _seriesMaxTapOvershoot = Mathf.Max(_seriesMaxTapOvershoot, _throw.DebugMaxTapOvershootDeg);
+                _seriesMaxHoldOvershoot = Mathf.Max(_seriesMaxHoldOvershoot, _throw.DebugMaxHoldOvershootDeg);
+                _seriesMaxReturnSec = Mathf.Max(_seriesMaxReturnSec, _throw.DebugReturnToRestSec);
+            }
 
             var recorded = new ThrowResult(_current.Index, _maxGap, a10, phaseName);
             if (_isVerifyRun)
@@ -626,10 +696,44 @@ namespace SweetBananas.Editor.SpikeBench
             int softLimit = validThrows > 0 ? Mathf.FloorToInt(validThrows * 0.05f) : 0;
             sb.AppendLine("a10_soft_bin_limit_valid=" + softLimit);
 
+            if (_experimentId.StartsWith("E1", StringComparison.Ordinal))
+            {
+                sb.AppendLine("e1_max_tap_overshoot_deg=" + _seriesMaxTapOvershoot.ToString(CultureInfo.InvariantCulture));
+                sb.AppendLine("e1_max_hold_overshoot_deg=" + _seriesMaxHoldOvershoot.ToString(CultureInfo.InvariantCulture));
+                sb.AppendLine("e1_max_return_to_rest_sec=" + _seriesMaxReturnSec.ToString(CultureInfo.InvariantCulture));
+                sb.AppendLine("e1_drive_mode=AngularVelocity");
+            }
+
             if (_isVerifyRun && _mainResults.Count > 0)
                 AppendVerifyComparison(sb);
 
+            if (!string.IsNullOrEmpty(_worstVerifyMainCsv) && _experimentId.Contains("verify1x_worst"))
+                AppendWorstVerifyComparison(sb);
+
             File.WriteAllText(summaryPath, sb.ToString());
+        }
+
+        static void AppendWorstVerifyComparison(StringBuilder sb)
+        {
+            var main = SpikeBenchE0Analysis.LoadThrowSummaries(_worstVerifyMainCsv);
+            int compared = 0;
+            int a10Match = 0;
+            for (int i = 0; i < _mainResults.Count; i++)
+            {
+                ThrowResult verify = _mainResults[i];
+                if (!main.TryGetValue(verify.Index, out var row))
+                    continue;
+                compared++;
+                bool mainA10 = row.A10;
+                if (mainA10 == verify.A10Break)
+                    a10Match++;
+                sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
+                    "worst_verify_throw index={0} main_gap={1:F4} verify_gap={2:F4} main_a10={3} verify_a10={4}",
+                    verify.Index, row.MaxGap, verify.MaxGap, mainA10 ? 1 : 0, verify.A10Break ? 1 : 0));
+            }
+
+            sb.AppendLine("worst_verify_compared=" + compared);
+            sb.AppendLine("worst_verify_a10_matches=" + a10Match);
         }
 
         static void AppendHistogram(StringBuilder sb, string prefix, int[] hist)

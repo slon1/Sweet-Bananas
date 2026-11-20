@@ -111,6 +111,18 @@ namespace SweetBananas.Editor.SpikeBench
             return grid;
         }
 
+        public static List<BenchThrowPlan> PickPlansByIndices(List<BenchThrowPlan> mainPlans, IEnumerable<int> indices)
+        {
+            var list = new List<BenchThrowPlan>();
+            foreach (int i in indices)
+            {
+                if (i >= 0 && i < mainPlans.Count)
+                    list.Add(mainPlans[i]);
+            }
+
+            return list;
+        }
+
         public static List<BenchThrowPlan> PickVerifyPlans(List<BenchThrowPlan> mainPlans)
         {
             var tapIndices = new List<int>();

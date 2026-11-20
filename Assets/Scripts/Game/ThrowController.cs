@@ -31,11 +31,32 @@ namespace SweetBananas.Game
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         bool _debugDrive;
         bool _debugHeld;
+        GameConfig _debugConfigOverride;
+        float _debugMaxTapOvershootDeg;
+        float _debugMaxHoldOvershootDeg;
+        float _debugReturnToRestElapsed;
+        bool _debugReturnTimerActive;
         public int FixedSteps { get; private set; }
         public void DebugSetDrive(bool enabled) => _debugDrive = enabled;
         public void DebugSetHeld(bool held) => _debugHeld = held;
         public void DebugResetFixedSteps() => FixedSteps = 0;
+        public void DebugSetConfigOverride(GameConfig config) => _debugConfigOverride = config;
+        public void DebugResetDriveMetrics()
+        {
+            _debugMaxTapOvershootDeg = 0f;
+            _debugMaxHoldOvershootDeg = 0f;
+            _debugReturnToRestElapsed = 0f;
+            _debugReturnTimerActive = false;
+        }
+
+        public float DebugMaxTapOvershootDeg => _debugMaxTapOvershootDeg;
+        public float DebugMaxHoldOvershootDeg => _debugMaxHoldOvershootDeg;
+        public float DebugReturnToRestSec => _debugReturnToRestElapsed;
         public event Action DebugFixedStep;
+
+        GameConfig ActiveConfig => _debugConfigOverride != null ? _debugConfigOverride : _config;
+#else
+        GameConfig ActiveConfig => _config;
 #endif
 
         public ThrowState State => _state;
@@ -73,7 +94,7 @@ namespace SweetBananas.Game
         {
             if (!_ready)
                 return;
-            _angle = _config.RestAngleDeg;
+            _angle = ActiveConfig.RestAngleDeg;
             _lollipop.SnapRotation(_angle);
         }
 
@@ -83,10 +104,13 @@ namespace SweetBananas.Game
             _heldTime = 0f;
             _held = false;
             _suppressUntilRelease = false;
-            if (_config != null)
-                _angle = _config.RestAngleDeg;
+            if (ActiveConfig != null)
+                _angle = ActiveConfig.RestAngleDeg;
             if (_lollipop != null)
                 _lollipop.SnapRotation(_angle);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            DebugResetDriveMetrics();
+#endif
         }
 
         void OnPressStarted(InputAction.CallbackContext ctx)
@@ -141,8 +165,8 @@ namespace SweetBananas.Game
                     break;
                 case ThrowState.Rise:
                     if (!held)
-                        _state = _heldTime <= _config.HoldThresholdSeconds ? ThrowState.TapRush : ThrowState.Return;
-                    else if (_heldTime > _config.HoldThresholdSeconds)
+                        _state = _heldTime <= ActiveConfig.HoldThresholdSeconds ? ThrowState.TapRush : ThrowState.Return;
+                    else if (_heldTime > ActiveConfig.HoldThresholdSeconds)
                         _state = ThrowState.Hold;
                     break;
                 case ThrowState.Hold:
@@ -150,38 +174,73 @@ namespace SweetBananas.Game
                         _state = ThrowState.Return;
                     break;
                 case ThrowState.TapRush:
-                    if (Reached(_config.TapPeakAngleDeg))
+                    if (Reached(ActiveConfig.TapPeakAngleDeg))
                         _state = ThrowState.Return;
                     break;
                 case ThrowState.Return:
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                    if (!_debugReturnTimerActive)
+                    {
+                        _debugReturnTimerActive = true;
+                        _debugReturnToRestElapsed = 0f;
+                    }
+
+                    _debugReturnToRestElapsed += dt;
+#endif
                     if (held)
                     {
                         _state = ThrowState.Rise;
                         _heldTime = dt;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                        _debugReturnTimerActive = false;
+#endif
                     }
-                    else if (Reached(_config.RestAngleDeg))
+                    else if (Reached(ActiveConfig.RestAngleDeg))
                     {
                         _state = ThrowState.Rest;
                         _heldTime = 0f;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                        _debugReturnTimerActive = false;
+#endif
                     }
                     break;
             }
 
+            float commandSpeed;
             switch (_state)
             {
                 case ThrowState.Rise:
                 case ThrowState.Hold:
-                    StepToward(_config.HoldAngleDeg, _config.HoldRiseSpeedDegPerSec, dt);
+                    StepToward(ActiveConfig.HoldAngleDeg, ActiveConfig.HoldRiseSpeedDegPerSec, dt);
+                    commandSpeed = ActiveConfig.HoldRiseSpeedDegPerSec;
                     break;
                 case ThrowState.TapRush:
-                    StepToward(_config.TapPeakAngleDeg, _config.TapSpeedDegPerSec, dt);
+                    StepToward(ActiveConfig.TapPeakAngleDeg, ActiveConfig.TapSpeedDegPerSec, dt);
+                    commandSpeed = ActiveConfig.TapSpeedDegPerSec;
                     break;
                 default:
-                    StepToward(_config.RestAngleDeg, _config.ReturnSpeedDegPerSec, dt);
+                    StepToward(ActiveConfig.RestAngleDeg, ActiveConfig.ReturnSpeedDegPerSec, dt);
+                    commandSpeed = ActiveConfig.ReturnSpeedDegPerSec;
                     break;
             }
 
-            _lollipop.ApplyRotation(_angle);
+            _lollipop.DriveToward(_angle, commandSpeed);
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            float stickDeg = _lollipop != null ? _lollipop.Angle : _angle;
+            if (_state == ThrowState.Hold)
+            {
+                float overshoot = Mathf.Abs(stickDeg - ActiveConfig.HoldAngleDeg);
+                if (overshoot > _debugMaxHoldOvershootDeg)
+                    _debugMaxHoldOvershootDeg = overshoot;
+            }
+            else if (_state == ThrowState.TapRush)
+            {
+                float overshoot = stickDeg - ActiveConfig.TapPeakAngleDeg;
+                if (overshoot > _debugMaxTapOvershootDeg)
+                    _debugMaxTapOvershootDeg = overshoot;
+            }
+#endif
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             DebugFixedStep?.Invoke();
