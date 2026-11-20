@@ -20,7 +20,12 @@ namespace SweetBananas.Game
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         public float LastBuildSlack { get; private set; }
+        public float LastSpawnLift { get; private set; }
 #endif
+
+        const float SpawnClearanceUnits = 0.01f;
+        const float SpawnLiftStepUnits = 0.02f;
+        const int SpawnLiftMaxIterations = 200;
 
         public IReadOnlyList<Rigidbody2D> Bodies => _bodies;
         public IReadOnlyList<CapsuleCollider2D> Colliders => _colliders;
@@ -199,20 +204,63 @@ namespace SweetBananas.Game
             Vector2 pivot = _lollipop.Pivot;
             Vector2 dir = _lollipop.StickDirection();
             Vector2 up = _lollipop.StickUp();
-            float along = fraction * pose.StickLengthUnits;
+            float stickSpan = Mathf.Max(0.01f, pose.StickLengthUnits - pose.HeadRadiusUnits);
+            float along = pose.HeadRadiusUnits + fraction * stickSpan;
             float ribbonHalf = _config.RibbonColliderThickness * 0.5f;
             float stickHalf = pose.StickThicknessUnits * 0.5f;
-            float perp = stickHalf + ribbonHalf + 0.02f;
-            float headClear = pose.HeadRadiusUnits + ribbonHalf + 0.02f;
-            if (along < headClear)
+            float perpBase = stickHalf + ribbonHalf + 0.02f;
+            float angle = _lollipop.Angle;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            LastSpawnLift = 0f;
+#endif
+            float extraLift = 0f;
+            for (int iter = 0; iter <= SpawnLiftMaxIterations; iter++)
             {
-                float rise = Mathf.Sqrt(Mathf.Max(0f, headClear * headClear - along * along));
-                perp = Mathf.Max(perp, rise);
+                float perp = perpBase + extraLift;
+                Vector2 center = pivot + dir * along + up * perp;
+                PlaceStraight(center, angle);
+                float minClear = MinLollipopClearanceDistance();
+                if (minClear >= SpawnClearanceUnits)
+                {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                    LastSpawnLift = extraLift;
+#endif
+                    return;
+                }
+
+                extraLift += SpawnLiftStepUnits;
             }
 
-            Vector2 center = pivot + dir * along + up * perp;
-            PlaceStraight(center, _lollipop.Angle);
+            UnityEngine.Debug.LogError(
+                $"Ribbon spawn clearance failed: fraction={fraction:F4}, extraLift={extraLift:F2}, minDist={MinLollipopClearanceDistance():F4}");
         }
+
+        float MinLollipopClearanceDistance()
+        {
+            if (_lollipop == null || _colliders.Count == 0)
+                return float.PositiveInfinity;
+
+            Collider2D head = _lollipop.HeadCollider;
+            Collider2D stick = _lollipop.StickCollider;
+            float min = float.PositiveInfinity;
+            for (int i = 0; i < _colliders.Count; i++)
+            {
+                CapsuleCollider2D segment = _colliders[i];
+                if (segment == null)
+                    continue;
+                if (head != null)
+                    min = Mathf.Min(min, Physics2D.Distance(segment, head).distance);
+                if (stick != null)
+                    min = Mathf.Min(min, Physics2D.Distance(segment, stick).distance);
+            }
+
+            return min;
+        }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public float MinSpawnClearanceDistance() => MinLollipopClearanceDistance();
+#endif
 
         void PlaceStraight(Vector2 center, float angleDeg)
         {

@@ -34,6 +34,7 @@ namespace SweetBananas.Editor.SpikeBench
         static int _flightBaselineSteps;
         static int _stopBaselineSteps;
         static float _stopElapsed;
+        static float _meshOffsetStep0;
         static string _stamp;
 
         [MenuItem("Sweet Bananas/SpikeBench/Run C0 Acceptance")]
@@ -99,7 +100,7 @@ namespace SweetBananas.Editor.SpikeBench
                 if (_throw.FixedSteps - _flightBaselineSteps >= 8)
                 {
                     _throw.DebugSetHeld(false);
-                    CaptureGame("c0_game_flight_" + _stamp + ".png", "flight");
+                    CaptureGame("c0_game_flight_" + _stamp + ".png", "after_A8_flight");
                     _phase = C0Phase.WaitStopped;
                     _stopBaselineSteps = _throw.FixedSteps;
                     _stopElapsed = 0f;
@@ -121,7 +122,11 @@ namespace SweetBananas.Editor.SpikeBench
                 if ((stopped && elapsed >= holdSteps)
                     || elapsed > Mathf.RoundToInt(5f / Time.fixedDeltaTime))
                 {
-                    CaptureGame("c0_game_after_stop_" + _stamp + ".png", "after_stop");
+                    Physics2D.SyncTransforms();
+                    float meshStop = MeasureMeshVsCapsules(_ribbon, _mesh);
+                    File.AppendAllText(Path.Combine(SpikeBenchMethodology.LogDirectory(), "c0_results.txt"),
+                        "mesh_capsule_center_offset_after_stop=" + meshStop.ToString(CultureInfo.InvariantCulture) + "\n");
+                    CaptureGame("c0_game_after_stop_" + _stamp + ".png", "after_A8_after_stop");
                     EditorApplication.ExitPlaymode();
                     StopAll();
                 }
@@ -141,11 +146,21 @@ namespace SweetBananas.Editor.SpikeBench
             }
 
             if (!passed)
-                Debug.LogWarning("SpikeBench C0: gap_sanity_pass=0 (see gap_sanity.txt); continuing per E2 acceptance.");
+            {
+                SpikeBenchJointDump.ResetFile();
+                SpikeBenchJointDump.WriteFirstTwoHinges(_ribbon, "c0_fail_gap_sanity_after_A8");
+                Debug.LogError("SpikeBench C0: gap_sanity_pass=0 after A8 — stopped.");
+                EditorApplication.ExitPlaymode();
+                StopAll();
+                return;
+            }
 
             Time.timeScale = 1f;
             _throw.SnapRest();
             _ribbon.ResetToSpawn();
+            Physics2D.SyncTransforms();
+            _mesh = Object.FindAnyObjectByType<RibbonMesh>();
+            _meshOffsetStep0 = MeasureMeshVsCapsules(_ribbon, _mesh);
             _baselineFixedSteps = _throw.FixedSteps;
             int fixedStepsPerSec = Mathf.Max(1, Mathf.RoundToInt(1f / Time.fixedDeltaTime));
             _restTargetSteps = fixedStepsPerSec;
@@ -171,20 +186,23 @@ namespace SweetBananas.Editor.SpikeBench
             sb.AppendLine("hinge_slack_at_1.0s=" + hingeSlack.ToString(CultureInfo.InvariantCulture));
             sb.AppendLine("mesh_capsule_center_offset=" + meshOffset.ToString(CultureInfo.InvariantCulture));
             sb.AppendLine("mesh_capsule_ok=" + (meshOffset <= 0.05f ? "1" : "0"));
-            sb.AppendLine("screenshot_note=spawn_preA8_head_dome");
+            sb.AppendLine("last_spawn_lift=" + _ribbon.LastSpawnLift.ToString(CultureInfo.InvariantCulture));
+            sb.AppendLine("min_spawn_clearance_step0=" + _ribbon.MinSpawnClearanceDistance().ToString(CultureInfo.InvariantCulture));
+            sb.AppendLine("mesh_capsule_center_offset_step0=" + _meshOffsetStep0.ToString(CultureInfo.InvariantCulture));
+            sb.AppendLine("screenshot_note=after_A8");
             File.WriteAllText(Path.Combine(logDir, "c0_results.txt"), sb.ToString());
 
-            if (hingeSlack > SpikeBenchGapSanity.StepSlackLimit || _ribbon.LastBuildSlack > SpikeBenchGapSanity.ResetSlackLimit)
+            if (_ribbon.LastBuildSlack > SpikeBenchGapSanity.ResetSlackLimit)
             {
                 SpikeBenchJointDump.ResetFile();
                 SpikeBenchJointDump.WriteFirstTwoHinges(_ribbon, "c0_e2_threshold_fail");
-                Debug.LogError("SpikeBench C0: hinge slack threshold failed.");
+                Debug.LogError("SpikeBench C0: LastBuildSlack failed.");
                 EditorApplication.ExitPlaymode();
                 StopAll();
                 return;
             }
 
-            CaptureGame("c0_game_rest_preA8_" + _stamp + ".png", "rest_preA8");
+            CaptureGame("c0_game_rest_" + _stamp + ".png", "after_A8_rest_1s");
 
             _throw.DebugSetDrive(true);
             _throw.DebugResetFixedSteps();

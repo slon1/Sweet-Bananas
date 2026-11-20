@@ -11,11 +11,13 @@ namespace SweetBananas.Editor.SpikeBench
 {
     public static class SpikeBenchGapSanity
     {
-        public static readonly float[] GapFractions = { 0.05f, 0.25f, 0.5f, 0.9f };
-        static readonly int[] StepMarks = { 1, 2, 3, 4, 5, 20, 120 };
+        public static readonly float[] GapFractions = { 0.05f, 0.25f, 0.5f, 0.75f, 0.9f };
+        static readonly int[] StepMarks = { 1, 5, 20, 120 };
 
         public const float ResetSlackLimit = 0.001f;
         public const float StepSlackLimit = 0.02f;
+        public const float SpawnClearanceLimit = 0.01f;
+        public const float RStopBelow = 0.35f;
         const float RestWaitSec = 1f;
 
         enum Phase
@@ -31,6 +33,8 @@ namespace SweetBananas.Editor.SpikeBench
         static int _stepMarkIndex;
         static int _baselineFixedSteps;
         static int _restTargetSteps;
+        static int _rSample01Steps;
+        static int _rSample05Steps;
         static ThrowController _throw;
         static Ribbon _ribbon;
         static StringBuilder _log;
@@ -45,6 +49,13 @@ namespace SweetBananas.Editor.SpikeBench
         public static void RunMenu()
         {
             _logFileName = "gap_sanity.txt";
+            StartStandalone();
+        }
+
+        [MenuItem("Sweet Bananas/SpikeBench/Run Spawn Clearance Check")]
+        public static void RunClearanceOnly()
+        {
+            _logFileName = "spawn_clearance.txt";
             StartStandalone();
         }
 
@@ -88,6 +99,8 @@ namespace SweetBananas.Editor.SpikeBench
             _failed = false;
             _phase = Phase.Running;
             _fractionIndex = -1;
+            _rSample01Steps = Mathf.Max(1, Mathf.RoundToInt(0.1f / Time.fixedDeltaTime));
+            _rSample05Steps = Mathf.Max(1, Mathf.RoundToInt(0.5f / Time.fixedDeltaTime));
             EditorApplication.update += Tick;
             TryKickoff();
         }
@@ -126,7 +139,7 @@ namespace SweetBananas.Editor.SpikeBench
                 return;
 
             _fractionIndex = 0;
-            _log.AppendLine("criteria=reset<=0.001; steps_5_20_120_and_rest<=0.02; steps_1_4_info_only");
+            _log.AppendLine("criteria=A8_spawn; reset<=0.001; step0_clearance>=0.01; steps_1_5_20_120_and_rest<=0.02; R_stop_below_0.35");
             _log.AppendLine("last_build_slack=" + _ribbon.LastBuildSlack.ToString(CultureInfo.InvariantCulture));
             if (_ribbon.LastBuildSlack > ResetSlackLimit)
                 _failed = true;
@@ -138,12 +151,30 @@ namespace SweetBananas.Editor.SpikeBench
             float f = GapFractions[_fractionIndex];
             _ribbon.ResetToSpawn(f);
             float slack = _ribbon.ValidateHingeAnchors();
+            float clear = _ribbon.MinSpawnClearanceDistance();
             _log.AppendLine(string.Format(CultureInfo.InvariantCulture,
-                "fraction={0:F2} after_reset_hinge_slack={1}", f, slack));
+                "fraction={0:F2} after_reset hinge_slack={1} last_spawn_lift={2} min_clearance_step0={3}",
+                f, slack, _ribbon.LastSpawnLift, clear));
             if (slack > ResetSlackLimit)
+                _failed = true;
+            if (clear < SpawnClearanceLimit)
                 _failed = true;
             _baselineFixedSteps = _throw.FixedSteps;
             _stepMarkIndex = 0;
+        }
+
+        static void LogRSample(int stepsFromReset)
+        {
+            if (stepsFromReset != _rSample01Steps && stepsFromReset != _rSample05Steps && stepsFromReset != 120)
+                return;
+
+            float r = SpikeBenchMeasurements.ComputeR(_ribbon);
+            float t = stepsFromReset * Time.fixedDeltaTime;
+            _log.AppendLine(string.Format(CultureInfo.InvariantCulture,
+                "fraction={0:F2} t={1:F2}s R={2}", GapFractions[_fractionIndex], t,
+                float.IsNaN(r) ? "NaN" : r.ToString(CultureInfo.InvariantCulture)));
+            if (!float.IsNaN(r) && r < RStopBelow)
+                _failed = true;
         }
 
         static void Advance()
@@ -153,8 +184,12 @@ namespace SweetBananas.Editor.SpikeBench
                 if (_throw.FixedSteps - _baselineFixedSteps >= _restTargetSteps)
                 {
                     float slack = _ribbon.ValidateHingeAnchors();
+                    float r = SpikeBenchMeasurements.ComputeR(_ribbon);
                     _log.AppendLine("rest_1.0s_hinge_slack=" + slack.ToString(CultureInfo.InvariantCulture));
+                    _log.AppendLine("rest_1.0s_R=" + (float.IsNaN(r) ? "NaN" : r.ToString(CultureInfo.InvariantCulture)));
                     if (slack > StepSlackLimit)
+                        _failed = true;
+                    if (!float.IsNaN(r) && r < RStopBelow)
                         _failed = true;
                     Complete(!_failed);
                 }
@@ -171,13 +206,12 @@ namespace SweetBananas.Editor.SpikeBench
                 return;
 
             float stepSlack = _ribbon.ValidateHingeAnchors();
-            bool infoOnly = target < 5;
-            string tag = infoOnly ? "info" : "pass";
             _log.AppendLine(string.Format(CultureInfo.InvariantCulture,
-                "fraction={0:F2} step={1} tag={2} hinge_slack={3}",
-                GapFractions[_fractionIndex], target, tag, stepSlack));
-            if (!infoOnly && stepSlack > StepSlackLimit)
+                "fraction={0:F2} step={1} hinge_slack={2}",
+                GapFractions[_fractionIndex], target, stepSlack));
+            if (stepSlack > StepSlackLimit)
                 _failed = true;
+            LogRSample(steps);
 
             _stepMarkIndex++;
             if (_stepMarkIndex < StepMarks.Length)
@@ -192,7 +226,7 @@ namespace SweetBananas.Editor.SpikeBench
 
             _ribbon.ResetToSpawn();
             float afterDefault = _ribbon.ValidateHingeAnchors();
-            _log.AppendLine("after_first_default_reset_hinge_slack=" + afterDefault.ToString(CultureInfo.InvariantCulture));
+            _log.AppendLine("after_default_reset_hinge_slack=" + afterDefault.ToString(CultureInfo.InvariantCulture));
             if (afterDefault > ResetSlackLimit)
                 _failed = true;
 
