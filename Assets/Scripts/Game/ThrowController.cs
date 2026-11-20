@@ -33,6 +33,7 @@ namespace SweetBananas.Game
         public int FixedSteps { get; private set; }
         public void DebugSetDrive(bool enabled) => _debugDrive = enabled;
         public void DebugSetHeld(bool held) => _debugHeld = held;
+        public void DebugResetFixedSteps() => FixedSteps = 0;
 #endif
 
         public ThrowState State => _state;
