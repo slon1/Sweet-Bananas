@@ -57,7 +57,34 @@ namespace SweetBananas.Game
             if (_throw != null)
                 _throw.SnapRest();
             PlaceAlongStick(fraction ?? _config.RibbonSpawnFraction);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            ValidateHingeAnchors();
+#endif
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public float ValidateHingeAnchors()
+        {
+            float maxSlack = 0f;
+            for (int i = 0; i < _joints.Count; i++)
+            {
+                HingeJoint2D joint = _joints[i];
+                Rigidbody2D bodyA = joint.attachedRigidbody;
+                Rigidbody2D bodyB = joint.connectedBody;
+                if (bodyA == null || bodyB == null)
+                    continue;
+
+                Vector2 worldA = bodyA.GetPoint(joint.anchor);
+                Vector2 worldB = bodyB.GetPoint(joint.connectedAnchor);
+                float slack = (worldA - worldB).magnitude;
+                maxSlack = Mathf.Max(maxSlack, slack);
+                if (slack > 0.001f)
+                    UnityEngine.Debug.LogError($"Ribbon hinge {i} anchor slack {slack:F6} (limit 0.001)");
+            }
+
+            return maxSlack;
+        }
+#endif
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void DebugPlace(Vector2 center, float angleDeg)
@@ -120,6 +147,8 @@ namespace SweetBananas.Game
                 body.angularDamping = _config.RibbonAngularDamping;
                 body.gravityScale = 1f;
                 body.sleepMode = RigidbodySleepMode2D.NeverSleep;
+                body.position = transform.TransformPoint(new Vector3(i * _segmentLength, 0f, 0f));
+                body.rotation = 0f;
 
                 var capsule = go.AddComponent<CapsuleCollider2D>();
                 capsule.direction = CapsuleDirection2D.Horizontal;
@@ -133,9 +162,10 @@ namespace SweetBananas.Game
             for (int i = 1; i < count; i++)
             {
                 var joint = _bodies[i].gameObject.AddComponent<HingeJoint2D>();
-                joint.connectedBody = _bodies[i - 1];
+                joint.autoConfigureConnectedAnchor = false;
                 joint.anchor = new Vector2(-_segmentLength * 0.5f, 0f);
                 joint.connectedAnchor = new Vector2(_segmentLength * 0.5f, 0f);
+                joint.connectedBody = _bodies[i - 1];
                 joint.useLimits = true;
                 joint.limits = new JointAngleLimits2D
                 {
@@ -152,7 +182,11 @@ namespace SweetBananas.Game
                     Physics2D.IgnoreCollision(_colliders[i], _colliders[j], true);
             }
 
+            Physics2D.SyncTransforms();
             _built = true;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            ValidateHingeAnchors();
+#endif
         }
 
         void PlaceAlongStick(float fraction)
