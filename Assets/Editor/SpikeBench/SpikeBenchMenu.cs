@@ -58,6 +58,39 @@ namespace SweetBananas.Editor.SpikeBench
         [MenuItem("Sweet Bananas/SpikeBench/A1 — angular velocity at 600 deg/s command")]
         public static void RunA1() => SpikeBenchA1Probe.RunFromMenu();
 
+        [MenuItem("Sweet Bananas/SpikeBench/Run Rest Probe (B6)")]
+        public static void RunRestProbe() => SpikeBenchRestProbe.RunFromMenu();
+
+        [MenuItem("Sweet Bananas/SpikeBench/J1 — reproducibility (10×2×2)")]
+        public static void RunJ1() => SpikeBenchJ1Repro.RunFromMenu();
+
+        [MenuItem("Sweet Bananas/SpikeBench/J2 — E0b @ 12x")]
+        public static void RunE0b()
+        {
+            if (SpikeBenchSession.IsRunning)
+                return;
+            SpikeBenchSession.Start("E0b", SpikeBenchMethodology.DefaultSeed, 12f,
+                SpikeBenchMethodology.SeriesTaps, SpikeBenchMethodology.SeriesHolds, false);
+        }
+
+        [MenuItem("Sweet Bananas/SpikeBench/J2 — E0c @ 1x")]
+        public static void RunE0c()
+        {
+            if (SpikeBenchSession.IsRunning)
+                return;
+            SpikeBenchSession.Start("E0c", SpikeBenchMethodology.DefaultSeed, 1f,
+                SpikeBenchMethodology.SeriesTaps, SpikeBenchMethodology.SeriesHolds, false);
+        }
+
+        [MenuItem("Sweet Bananas/SpikeBench/J2 — compare E0/E0b/E0c noise")]
+        public static void RunJ2Analyze() => SpikeBenchJ2Decision.AnalyzeFromMenu();
+
+        [MenuItem("Sweet Bananas/SpikeBench/K — H1b contact traces")]
+        public static void RunH1b() => SpikeBenchH1bRunner.RunFromMenu();
+
+        [MenuItem("Sweet Bananas/SpikeBench/M — Run E2b then E2s grid")]
+        public static void RunE2Grid() => SpikeBenchE2Orchestrator.RunGridFromMenu();
+
         [MenuItem("Sweet Bananas/SpikeBench/Run E1 (100+20 @ 12x, angularVelocity drive)")]
         public static void RunE1()
         {
@@ -96,6 +129,8 @@ namespace SweetBananas.Editor.SpikeBench
                         SpikeBenchH1Runner.Stop();
                     if (SpikeBenchA1Probe.IsRunning)
                         SpikeBenchA1Probe.Stop();
+                    if (SpikeBenchRestProbe.IsRunning)
+                        SpikeBenchRestProbe.Stop();
                 }
             };
         }

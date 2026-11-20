@@ -118,8 +118,13 @@ namespace SweetBananas.Editor.SpikeBench
         static float _seriesMaxHoldOvershoot;
         static float _seriesMaxReturnSec;
         static string _worstVerifyMainCsv;
+        static Action _beginPlayHook;
 
         public static bool IsRunning => _state != SessionState.Idle;
+
+        public static void SetBeginPlayHook(Action hook) => _beginPlayHook = hook;
+
+        public static float ScreeningTimeScale => SpikeBenchMethodology.ScreeningTimeScale;
 
         public static void StartE1()
         {
@@ -236,6 +241,7 @@ namespace SweetBananas.Editor.SpikeBench
 
             _throw.DebugSetDrive(true);
             _throw.DebugFixedStep += OnDebugFixedStep;
+            _beginPlayHook?.Invoke();
 
             string csvExperiment = _isVerifyRun ? _experimentId + "_verify1x" : _experimentId;
             _csv = new SpikeBenchCsv(csvExperiment, _seed, _runId);
@@ -542,7 +548,8 @@ namespace SweetBananas.Editor.SpikeBench
                 _spawnAngle,
                 _spawnFixedStepsAtClearance,
                 _hingeSlackMax,
-                _currentThrowInvalid ? "" : _rMinPhaseAtMin);
+                _currentThrowInvalid ? "" : _rMinPhaseAtMin,
+                _throw != null ? _throw.FixedSteps - _spawnFixedStep : -1);
 
             if (!_currentThrowInvalid && _throw != null)
             {
@@ -803,8 +810,18 @@ namespace SweetBananas.Editor.SpikeBench
                 _throw.DebugFixedStep -= OnDebugFixedStep;
                 _throw.DebugSetHeld(false);
                 _throw.DebugSetDrive(false);
+                _throw.DebugSetConfigOverride(null);
             }
 
+            if (_ribbon != null)
+                _ribbon.DebugSetConfigOverride(null);
+            if (_lollipop != null)
+            {
+                _lollipop.DebugSetHeadColliderEnabled(true);
+                _lollipop.DebugSetDriveMode(LollipopDriveMode.MoveRotation);
+            }
+
+            _beginPlayHook = null;
             if (_overlay != null)
                 _overlay.AutoResetEnabled = true;
 
