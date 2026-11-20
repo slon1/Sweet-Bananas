@@ -7,6 +7,7 @@ using SweetBananas.Data;
 using SweetBananas.Game;
 using SweetBananas.Game.Debug;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 
 namespace SweetBananas.Editor.SpikeBench
@@ -21,15 +22,24 @@ namespace SweetBananas.Editor.SpikeBench
             WaitScene,
             ThrowPress,
             ThrowFree,
+            ThrowSecondPress,
             Done
         }
 
-        struct ThrowPlan
+        readonly struct ThrowResult
         {
-            public int Index;
-            public bool IsHold;
-            public float SpawnFraction;
-            public float PressDuration;
+            public readonly int Index;
+            public readonly float MaxGap;
+            public readonly bool A10Break;
+            public readonly string Phase;
+
+            public ThrowResult(int index, float maxGap, bool a10Break, string phase)
+            {
+                Index = index;
+                MaxGap = maxGap;
+                A10Break = a10Break;
+                Phase = phase;
+            }
         }
 
         static SessionState _state = SessionState.Idle;
@@ -39,11 +49,15 @@ namespace SweetBananas.Editor.SpikeBench
         static int _tapCount = SpikeBenchMethodology.SeriesTaps;
         static int _holdCount = SpikeBenchMethodology.SeriesHolds;
         static bool _verifyRealtime;
+        static bool _isVerifyRun;
         static string _runId;
 
-        static readonly List<ThrowPlan> _plans = new();
+        static readonly List<BenchThrowPlan> _plans = new();
+        static readonly List<BenchThrowPlan> _mainPlansForVerify = new();
+        static readonly List<ThrowResult> _mainResults = new();
+        static readonly List<ThrowResult> _verifyResults = new();
         static int _planIndex;
-        static ThrowPlan _current;
+        static BenchThrowPlan _current;
         static SpikeBenchCsv _csv;
 
         static ThrowController _throw;
@@ -52,11 +66,11 @@ namespace SweetBananas.Editor.SpikeBench
         static SpikeOverlay _overlay;
         static GameConfig _config;
 
-        static int _lastFixedSteps;
         static float _pressElapsed;
         static float _freeElapsed;
         static float _stopElapsed;
-        static float _spawnTime;
+        static int _spawnFixedStep;
+        static int _rMinExcludeFixedSteps;
         static float _maxGap;
         static SpikeGapPhase _gapPhaseAtMax = SpikeGapPhase.Unknown;
         static SpikeGapPhase _phase = SpikeGapPhase.Unknown;
@@ -65,6 +79,8 @@ namespace SweetBananas.Editor.SpikeBench
         static bool _naN;
         static float _heldSeconds;
         static float _findSceneStart;
+
+        static bool _followUpTapDone;
 
         static int _totalBreaks;
         static int _bin085to21;
@@ -87,15 +103,25 @@ namespace SweetBananas.Editor.SpikeBench
             _tapCount = taps;
             _holdCount = holds;
             _verifyRealtime = verifyRealtime;
+            _isVerifyRun = false;
             _runId = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
+            _mainResults.Clear();
+            _mainPlansForVerify.Clear();
 
-            SpikeBenchMethodology.WriteMethodologyArtifact(seed, experimentId);
-            BuildPlans(seed, taps, holds);
+            SpikeBenchMethodology.WriteMethodologyArtifact(seed, experimentId, taps, holds);
+            _plans.Clear();
+            _plans.AddRange(SpikeBenchPlanBuilder.BuildSeriesPlans(seed, taps, holds));
+            if (verifyRealtime)
+                _mainPlansForVerify.AddRange(_plans);
 
             EditorApplication.update += Tick;
 
             if (!Application.isPlaying)
             {
+                var startScene = AssetDatabase.LoadAssetAtPath<SceneAsset>("Assets/Scenes/Scene.unity");
+                if (startScene != null)
+                    EditorSceneManager.playModeStartScene = startScene;
+
                 EditorApplication.EnterPlaymode();
                 _state = SessionState.WaitScene;
                 _findSceneStart = (float)EditorApplication.timeSinceStartup;
@@ -112,43 +138,9 @@ namespace SweetBananas.Editor.SpikeBench
             _state = SessionState.Idle;
         }
 
-        static void BuildPlans(int seed, int taps, int holds)
-        {
-            _plans.Clear();
-            var rng = new System.Random(seed);
-            int index = 0;
-            for (int i = 0; i < taps; i++)
-            {
-                _plans.Add(new ThrowPlan
-                {
-                    Index = index++,
-                    IsHold = false,
-                    SpawnFraction = Pick(rng, SpikeBenchMethodology.SpawnFractions),
-                    PressDuration = Pick(rng, SpikeBenchMethodology.TapPressDurationsSec)
-                });
-            }
-
-            for (int i = 0; i < holds; i++)
-            {
-                _plans.Add(new ThrowPlan
-                {
-                    Index = index++,
-                    IsHold = true,
-                    SpawnFraction = Pick(rng, SpikeBenchMethodology.SpawnFractions),
-                    PressDuration = Pick(rng, SpikeBenchMethodology.HoldPressDurationsSec)
-                });
-            }
-        }
-
-        static float Pick(System.Random rng, float[] values)
-        {
-            return values[rng.Next(values.Length)];
-        }
-
         static void BeginPlay()
         {
             Time.timeScale = _timeScale;
-            _config = AssetDatabase.LoadAssetAtPath<GameConfig>("Assets/Data/GameConfig.asset");
             if (!TryFindActors())
             {
                 Debug.LogError("SpikeBench: scene objects not found.");
@@ -156,17 +148,22 @@ namespace SweetBananas.Editor.SpikeBench
                 return;
             }
 
+            _rMinExcludeFixedSteps = Mathf.Max(1, Mathf.CeilToInt(
+                SpikeBenchMethodology.RMinExcludeAfterSpawnSec / _config.FixedDeltaTime));
+
             _overlay.AutoResetEnabled = false;
             _throw.DebugSetDrive(true);
-            _csv = new SpikeBenchCsv(_experimentId, _seed, _runId);
+            _throw.DebugFixedStep += OnDebugFixedStep;
+
+            string csvExperiment = _isVerifyRun ? _experimentId + "_verify1x" : _experimentId;
+            _csv = new SpikeBenchCsv(csvExperiment, _seed, _runId);
             _planIndex = 0;
             _totalBreaks = 0;
             _bin085to21 = 0;
             Array.Clear(_histogram, 0, _histogram.Length);
             _seriesMaxGap = 0f;
-            _state = SessionState.ThrowPress;
             StartThrow(_plans[_planIndex]);
-            Debug.Log("SpikeBench: started " + _experimentId + " seed=" + _seed + " timeScale=" + _timeScale);
+            Debug.Log("SpikeBench: started " + csvExperiment + " seed=" + _seed + " timeScale=" + _timeScale);
         }
 
         static bool TryFindActors()
@@ -175,19 +172,20 @@ namespace SweetBananas.Editor.SpikeBench
             _ribbon = UnityEngine.Object.FindAnyObjectByType<Ribbon>();
             _lollipop = UnityEngine.Object.FindAnyObjectByType<Lollipop>();
             _overlay = UnityEngine.Object.FindAnyObjectByType<SpikeOverlay>();
+            if (_config == null)
+                _config = AssetDatabase.LoadAssetAtPath<GameConfig>("Assets/Data/GameConfig.asset");
             return _throw != null && _ribbon != null && _lollipop != null && _config != null;
         }
 
-        static void StartThrow(ThrowPlan plan)
+        static void StartThrow(BenchThrowPlan plan)
         {
             _current = plan;
             _ribbon.ResetToSpawn(plan.SpawnFraction);
             _throw.DebugResetFixedSteps();
-            _lastFixedSteps = _throw.FixedSteps;
+            _spawnFixedStep = _throw.FixedSteps;
             _pressElapsed = 0f;
             _freeElapsed = 0f;
             _stopElapsed = 0f;
-            _spawnTime = Time.time;
             _maxGap = 0f;
             _gapPhaseAtMax = SpikeGapPhase.Unknown;
             _phase = SpikeGapPhase.Contact;
@@ -195,6 +193,7 @@ namespace SweetBananas.Editor.SpikeBench
             _rMin = float.PositiveInfinity;
             _naN = false;
             _heldSeconds = 0f;
+            _followUpTapDone = !plan.FollowUpTapAfterRest;
             _throw.DebugSetHeld(true);
             _state = SessionState.ThrowPress;
         }
@@ -217,50 +216,28 @@ namespace SweetBananas.Editor.SpikeBench
                 }
 
                 if (Application.isPlaying && TryFindActors())
-                {
                     BeginPlay();
-                }
 
                 return;
             }
 
             if (!Application.isPlaying)
-            {
                 Stop();
-                return;
-            }
+        }
 
+        static void OnDebugFixedStep()
+        {
+            if (_state == SessionState.Idle || _state == SessionState.WaitScene || _state == SessionState.Done)
+                return;
             if (_throw == null || _ribbon == null)
                 return;
 
-            while (_throw.FixedSteps > _lastFixedSteps)
-            {
-                _lastFixedSteps++;
-                SampleFixedStep();
-            }
+            SampleFixedStep();
         }
 
         static void SampleFixedStep()
         {
             UpdateNaNFlag();
-
-            float gap = SpikeBenchMeasurements.MaxAnchorGap(_ribbon);
-            if (gap > _maxGap)
-            {
-                _maxGap = gap;
-                _gapPhaseAtMax = _phase;
-            }
-
-            float speed = SpikeBenchMeasurements.MaxSegmentSpeed(_ribbon);
-            if (speed > _maxSpeed)
-                _maxSpeed = speed;
-
-            if (Time.time - _spawnTime >= SpikeBenchMethodology.RMinExcludeAfterSpawnSec)
-            {
-                float r = SpikeBenchMeasurements.ComputeR(_ribbon);
-                if (!float.IsNaN(r) && r < _rMin)
-                    _rMin = r;
-            }
 
             bool touching = SpikeBenchMeasurements.AnyTouchingLollipop(_ribbon, _lollipop);
             bool stopped = SpikeBenchMeasurements.AllStopped(_ribbon, SpikeBenchMethodology.StopSpeedThreshold);
@@ -276,12 +253,32 @@ namespace SweetBananas.Editor.SpikeBench
             else
                 _phase = SpikeGapPhase.Flight;
 
-            if (_state == SessionState.ThrowPress)
+            float gap = SpikeBenchMeasurements.MaxAnchorGap(_ribbon);
+            if (gap > _maxGap)
+            {
+                _maxGap = gap;
+                _gapPhaseAtMax = _phase;
+            }
+
+            float speed = SpikeBenchMeasurements.MaxSegmentSpeed(_ribbon);
+            if (speed > _maxSpeed)
+                _maxSpeed = speed;
+
+            if (_throw.FixedSteps - _spawnFixedStep >= _rMinExcludeFixedSteps)
+            {
+                float r = SpikeBenchMeasurements.ComputeR(_ribbon);
+                if (!float.IsNaN(r) && r < _rMin)
+                    _rMin = r;
+            }
+
+            if (_state == SessionState.ThrowPress || _state == SessionState.ThrowSecondPress)
             {
                 _pressElapsed += Time.fixedDeltaTime;
-                _heldSeconds = _pressElapsed;
-                float limit = _current.PressDuration;
-                if (_current.IsHold)
+                _heldSeconds += Time.fixedDeltaTime;
+                float limit = _state == SessionState.ThrowSecondPress
+                    ? SpikeBenchPlanBuilder.FollowUpTapDurationSec
+                    : _current.PressDuration;
+                if (_current.IsHold && _state == SessionState.ThrowPress)
                     limit = Mathf.Min(limit, SpikeBenchMethodology.HoldThrowTimeoutSec);
                 if (_pressElapsed >= limit)
                 {
@@ -296,6 +293,15 @@ namespace SweetBananas.Editor.SpikeBench
 
             if (_state == SessionState.ThrowFree)
             {
+                if (_current.IsHold && _current.FollowUpTapAfterRest && !_followUpTapDone && _throw.State == ThrowState.Rest)
+                {
+                    _followUpTapDone = true;
+                    _pressElapsed = 0f;
+                    _throw.DebugSetHeld(true);
+                    _state = SessionState.ThrowSecondPress;
+                    return;
+                }
+
                 _freeElapsed += Time.fixedDeltaTime;
                 float timeout = _current.IsHold
                     ? SpikeBenchMethodology.HoldThrowTimeoutSec
@@ -304,7 +310,8 @@ namespace SweetBananas.Editor.SpikeBench
                 bool settled = _stopElapsed >= SpikeBenchMethodology.StopHoldSec;
                 bool timedOut = _freeElapsed >= timeout;
                 bool failed = SpikeBenchMeasurements.FailBounds(_ribbon, _lollipop, _config);
-                if (settled || timedOut || failed)
+                bool canEnd = _followUpTapDone || !_current.FollowUpTapAfterRest;
+                if (canEnd && (settled || timedOut || failed))
                     FinishThrow();
             }
         }
@@ -339,8 +346,9 @@ namespace SweetBananas.Editor.SpikeBench
                 _ => "unknown"
             };
 
+            string csvExperiment = _isVerifyRun ? _experimentId + "_verify1x" : _experimentId;
             _csv.WriteThrowRow(
-                _experimentId,
+                csvExperiment,
                 _current.Index,
                 _current.IsHold ? "hold" : "tap",
                 _timeScale,
@@ -352,6 +360,12 @@ namespace SweetBananas.Editor.SpikeBench
                 _maxSpeed,
                 _rMin,
                 _heldSeconds);
+
+            var recorded = new ThrowResult(_current.Index, _maxGap, a10, phaseName);
+            if (_isVerifyRun)
+                _verifyResults.Add(recorded);
+            else
+                _mainResults.Add(recorded);
 
             if (a10)
                 _totalBreaks++;
@@ -379,24 +393,24 @@ namespace SweetBananas.Editor.SpikeBench
             _state = SessionState.Done;
             Debug.Log("SpikeBench: series complete. Logs in " + SpikeBenchMethodology.LogDirectory());
 
-            if (_verifyRealtime && _timeScale > 1.01f)
+            if (_verifyRealtime && _timeScale > 1.01f && !_isVerifyRun)
             {
                 _timeScale = 1f;
                 Time.timeScale = 1f;
-                int verify = Mathf.Min(SpikeBenchMethodology.VerifyAtRealtimeCount, _plans.Count);
                 _csv?.Dispose();
                 _runId += "_verify1x";
+                _isVerifyRun = true;
                 _totalBreaks = 0;
                 _bin085to21 = 0;
                 Array.Clear(_histogram, 0, _histogram.Length);
                 _seriesMaxGap = 0f;
-                _csv = new SpikeBenchCsv(_experimentId + "_verify1x", _seed, _runId);
-                var subset = _plans.GetRange(0, verify);
+                _verifyResults.Clear();
                 _plans.Clear();
-                _plans.AddRange(subset);
+                _plans.AddRange(SpikeBenchPlanBuilder.PickVerifyPlans(_mainPlansForVerify));
                 _planIndex = 0;
-                StartThrow(_plans[0]);
                 _state = SessionState.ThrowPress;
+                _csv = new SpikeBenchCsv(_experimentId + "_verify1x", _seed, _runId);
+                StartThrow(_plans[0]);
                 _verifyRealtime = false;
                 return;
             }
@@ -408,10 +422,11 @@ namespace SweetBananas.Editor.SpikeBench
         static void WriteSummary()
         {
             int throwsDone = _planIndex;
+            string csvExperiment = _isVerifyRun ? _experimentId + "_verify1x" : _experimentId;
             string dir = SpikeBenchMethodology.LogDirectory();
-            string summaryPath = Path.Combine(dir, $"summary_{_experimentId}_{_seed}_{_runId}.txt");
+            string summaryPath = Path.Combine(dir, $"summary_{csvExperiment}_{_seed}_{_runId}.txt");
             var sb = new StringBuilder();
-            sb.AppendLine("experiment_id=" + _experimentId);
+            sb.AppendLine("experiment_id=" + csvExperiment);
             sb.AppendLine("seed=" + _seed);
             sb.AppendLine("time_scale=" + _timeScale.ToString(CultureInfo.InvariantCulture));
             sb.AppendLine("throws=" + throwsDone);
@@ -425,7 +440,49 @@ namespace SweetBananas.Editor.SpikeBench
             sb.AppendLine("histogram_4_gt_1=" + _histogram[4]);
             int softLimit = throwsDone > 0 ? Mathf.FloorToInt(throwsDone * 0.05f) : 0;
             sb.AppendLine("a10_soft_bin_limit=" + softLimit);
+
+            if (_isVerifyRun && _mainResults.Count > 0)
+                AppendVerifyComparison(sb);
+
             File.WriteAllText(summaryPath, sb.ToString());
+        }
+
+        static void AppendVerifyComparison(StringBuilder sb)
+        {
+            int matchesA10 = 0;
+            int compared = 0;
+            float maxGapDelta = 0f;
+            for (int v = 0; v < _verifyResults.Count; v++)
+            {
+                ThrowResult verify = _verifyResults[v];
+                ThrowResult? main = null;
+                for (int m = 0; m < _mainResults.Count; m++)
+                {
+                    if (_mainResults[m].Index == verify.Index)
+                    {
+                        main = _mainResults[m];
+                        break;
+                    }
+                }
+
+                if (main == null)
+                    continue;
+
+                compared++;
+                if (main.Value.A10Break == verify.A10Break)
+                    matchesA10++;
+                float delta = Mathf.Abs(main.Value.MaxGap - verify.MaxGap);
+                if (delta > maxGapDelta)
+                    maxGapDelta = delta;
+                sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
+                    "verify_throw index={0} main_gap={1:F4} verify_gap={2:F4} a10_main={3} a10_verify={4}",
+                    verify.Index, main.Value.MaxGap, verify.MaxGap, main.Value.A10Break ? 1 : 0, verify.A10Break ? 1 : 0));
+            }
+
+            sb.AppendLine("verify_compare_throws=" + compared);
+            sb.AppendLine("verify_a10_flag_matches=" + matchesA10);
+            sb.AppendLine("verify_max_gap_delta=" + maxGapDelta.ToString(CultureInfo.InvariantCulture));
+            sb.AppendLine("verify_result=" + (matchesA10 == compared && compared > 0 ? "match" : "mismatch"));
         }
 
         static void TearDown()
@@ -433,6 +490,7 @@ namespace SweetBananas.Editor.SpikeBench
             EditorApplication.update -= Tick;
             if (_throw != null)
             {
+                _throw.DebugFixedStep -= OnDebugFixedStep;
                 _throw.DebugSetHeld(false);
                 _throw.DebugSetDrive(false);
             }
@@ -444,6 +502,7 @@ namespace SweetBananas.Editor.SpikeBench
             _csv = null;
             Time.timeScale = 1f;
             _state = SessionState.Idle;
+            _isVerifyRun = false;
         }
     }
 }

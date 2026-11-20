@@ -61,8 +61,6 @@ namespace SweetBananas.Editor.SpikeBench
                     continue;
                 if (b.linearVelocity.sqrMagnitude > speedThreshold * speedThreshold)
                     return false;
-                if (Mathf.Abs(b.angularVelocity) > speedThreshold * 50f)
-                    return false;
             }
 
             return bodies.Count > 0;
@@ -89,8 +87,8 @@ namespace SweetBananas.Editor.SpikeBench
                 return float.NaN;
 
             float half = ribbon.SegmentLength * 0.5f;
-            Vector2 start = bodies[0].transform.TransformPoint(new Vector2(-half, 0f));
-            Vector2 end = bodies[bodies.Count - 1].transform.TransformPoint(new Vector2(half, 0f));
+            Vector2 start = bodies[0].GetPoint(new Vector2(-half, 0f));
+            Vector2 end = bodies[bodies.Count - 1].GetPoint(new Vector2(half, 0f));
             float length = ribbon.SegmentLength * bodies.Count;
             if (length < 1e-4f)
                 return float.NaN;
@@ -107,8 +105,8 @@ namespace SweetBananas.Editor.SpikeBench
             float max = 0f;
             for (int i = 0; i < bodies.Count - 1; i++)
             {
-                Vector2 a = bodies[i].transform.TransformPoint(new Vector2(half, 0f));
-                Vector2 b = bodies[i + 1].transform.TransformPoint(new Vector2(-half, 0f));
+                Vector2 a = bodies[i].GetPoint(new Vector2(half, 0f));
+                Vector2 b = bodies[i + 1].GetPoint(new Vector2(-half, 0f));
                 float d = (a - b).magnitude;
                 if (d > max)
                     max = d;

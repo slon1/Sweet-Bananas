@@ -8,7 +8,11 @@ namespace SweetBananas.Editor.SpikeBench
         [MenuItem("Sweet Bananas/SpikeBench/Step 0 — Write Methodology")]
         public static void Step0WriteMethodology()
         {
-            SpikeBenchMethodology.WriteMethodologyArtifact(SpikeBenchMethodology.DefaultSeed, "step0");
+            SpikeBenchMethodology.WriteMethodologyArtifact(
+                SpikeBenchMethodology.DefaultSeed,
+                "step0",
+                SpikeBenchMethodology.SeriesTaps,
+                SpikeBenchMethodology.SeriesHolds);
             Debug.Log("SpikeBench step 0: methodology written to " + SpikeBenchMethodology.LogDirectory());
         }
 
@@ -30,7 +34,7 @@ namespace SweetBananas.Editor.SpikeBench
                 verifyRealtime: true);
         }
 
-        [MenuItem("Sweet Bananas/SpikeBench/Run Smoke (4 throws)")]
+        [MenuItem("Sweet Bananas/SpikeBench/Run Smoke (4 throws @ 1x)")]
         public static void RunSmoke()
         {
             if (SpikeBenchSession.IsRunning)

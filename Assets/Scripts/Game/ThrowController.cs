@@ -1,3 +1,4 @@
+using System;
 using SweetBananas.Data;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -34,6 +35,7 @@ namespace SweetBananas.Game
         public void DebugSetDrive(bool enabled) => _debugDrive = enabled;
         public void DebugSetHeld(bool held) => _debugHeld = held;
         public void DebugResetFixedSteps() => FixedSteps = 0;
+        public event Action DebugFixedStep;
 #endif
 
         public ThrowState State => _state;
@@ -120,6 +122,7 @@ namespace SweetBananas.Game
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             FixedSteps++;
+            DebugFixedStep?.Invoke();
             if (_debugDrive)
                 _held = _debugHeld;
 #endif
