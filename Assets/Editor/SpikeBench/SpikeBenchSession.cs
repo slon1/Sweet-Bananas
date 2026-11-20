@@ -87,6 +87,19 @@ namespace SweetBananas.Editor.SpikeBench
         static readonly int[] _histogram = new int[5];
         static float _seriesMaxGap;
 
+        static readonly float[] _pairGapsBuf = new float[7];
+        static bool _gapMetricsFrozen;
+        static int _firstGap085Step = -1;
+        static float _firstGap085Value;
+        static int _firstGap085Pair;
+        static string _firstGap085Phase = "";
+        static int _firstGap021Step = -1;
+        static float _firstGap021Value;
+        static int _firstGap021Pair;
+        static string _firstGap021Phase = "";
+        static SpikeBenchTrace _trace;
+        static int _throwPhysicsStep;
+
         public static bool IsRunning => _state != SessionState.Idle;
 
         public static void Start(string experimentId, int seed, float timeScale, int taps, int holds, bool verifyRealtime)
@@ -194,6 +207,17 @@ namespace SweetBananas.Editor.SpikeBench
             _naN = false;
             _heldSeconds = 0f;
             _followUpTapDone = !plan.FollowUpTapAfterRest;
+            _gapMetricsFrozen = false;
+            _firstGap085Step = -1;
+            _firstGap021Step = -1;
+            _throwPhysicsStep = 0;
+            if (plan.Index == 0)
+            {
+                _trace?.Dispose();
+                string csvExperiment = _isVerifyRun ? _experimentId + "_verify1x" : _experimentId;
+                _trace = new SpikeBenchTrace(csvExperiment, _seed, _runId);
+            }
+
             _throw.DebugSetHeld(true);
             _state = SessionState.ThrowPress;
         }
@@ -253,23 +277,73 @@ namespace SweetBananas.Editor.SpikeBench
             else
                 _phase = SpikeGapPhase.Flight;
 
-            float gap = SpikeBenchMeasurements.MaxAnchorGap(_ribbon);
-            if (gap > _maxGap)
+            float maxPair = 0f;
+            int worstPair = 0;
+            SpikeBenchMeasurements.FillPairGaps(_ribbon, _pairGapsBuf, ref maxPair);
+            for (int p = 1; p < _pairGapsBuf.Length; p++)
             {
-                _maxGap = gap;
-                _gapPhaseAtMax = _phase;
+                if (_pairGapsBuf[p] > _pairGapsBuf[worstPair])
+                    worstPair = p;
+            }
+
+            string phaseName = _phase switch
+            {
+                SpikeGapPhase.Contact => "contact",
+                SpikeGapPhase.Flight => "flight",
+                SpikeGapPhase.Stopped => "stopped",
+                _ => "unknown"
+            };
+
+            if (!_gapMetricsFrozen)
+            {
+                if (maxPair > _maxGap)
+                {
+                    _maxGap = maxPair;
+                    _gapPhaseAtMax = _phase;
+                }
+
+                if (_firstGap085Step < 0 && maxPair > SpikeBenchMethodology.GapHardVisual)
+                {
+                    _firstGap085Step = _throwPhysicsStep;
+                    _firstGap085Value = maxPair;
+                    _firstGap085Pair = worstPair;
+                    _firstGap085Phase = phaseName;
+                }
+
+                if (maxPair > SpikeBenchMethodology.GapBreakSoft)
+                {
+                    if (_firstGap021Step < 0)
+                    {
+                        _firstGap021Step = _throwPhysicsStep;
+                        _firstGap021Value = maxPair;
+                        _firstGap021Pair = worstPair;
+                        _firstGap021Phase = phaseName;
+                    }
+
+                    _gapMetricsFrozen = true;
+                }
             }
 
             float speed = SpikeBenchMeasurements.MaxSegmentSpeed(_ribbon);
             if (speed > _maxSpeed)
                 _maxSpeed = speed;
 
-            if (_throw.FixedSteps - _spawnFixedStep >= _rMinExcludeFixedSteps)
+            float rSample = float.NaN;
+            if (!_gapMetricsFrozen && _throw.FixedSteps - _spawnFixedStep >= _rMinExcludeFixedSteps)
             {
                 float r = SpikeBenchMeasurements.ComputeR(_ribbon);
+                rSample = r;
                 if (!float.IsNaN(r) && r < _rMin)
                     _rMin = r;
             }
+
+            if (_trace != null && _current.Index == 0)
+            {
+                float stickAngle = _lollipop != null ? _lollipop.Angle : 0f;
+                _trace.WriteRow(_throwPhysicsStep, _pairGapsBuf, speed, phaseName, rSample, stickAngle);
+            }
+
+            _throwPhysicsStep++;
 
             if (_state == SessionState.ThrowPress || _state == SessionState.ThrowSecondPress)
             {
@@ -337,7 +411,7 @@ namespace SweetBananas.Editor.SpikeBench
             if (_rMin == float.PositiveInfinity)
                 _rMin = float.NaN;
 
-            bool a10 = SpikeBenchMeasurements.IsA10Break(_maxGap);
+            bool a10 = _firstGap021Step >= 0;
             string phaseName = _gapPhaseAtMax switch
             {
                 SpikeGapPhase.Contact => "contact",
@@ -345,6 +419,12 @@ namespace SweetBananas.Editor.SpikeBench
                 SpikeGapPhase.Stopped => "stopped",
                 _ => "unknown"
             };
+
+            if (_current.Index == 0)
+            {
+                _trace?.Dispose();
+                _trace = null;
+            }
 
             string csvExperiment = _isVerifyRun ? _experimentId + "_verify1x" : _experimentId;
             _csv.WriteThrowRow(
@@ -359,7 +439,12 @@ namespace SweetBananas.Editor.SpikeBench
                 phaseName,
                 _maxSpeed,
                 _rMin,
-                _heldSeconds);
+                _heldSeconds,
+                _firstGap085Step,
+                _firstGap085Value,
+                _firstGap021Step,
+                _firstGap021Value,
+                _firstGap021Pair);
 
             var recorded = new ThrowResult(_current.Index, _maxGap, a10, phaseName);
             if (_isVerifyRun)
@@ -500,6 +585,8 @@ namespace SweetBananas.Editor.SpikeBench
 
             _csv?.Dispose();
             _csv = null;
+            _trace?.Dispose();
+            _trace = null;
             Time.timeScale = 1f;
             _state = SessionState.Idle;
             _isVerifyRun = false;

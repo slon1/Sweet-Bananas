@@ -59,7 +59,7 @@ namespace SweetBananas.Editor.SpikeBench
             sb.AppendLine("seed=" + seed);
             sb.AppendLine("experiment_id=" + experimentId);
             sb.AppendLine(SpikeBenchPlanBuilder.DescribeGridOrder(seed, tapCount, holdCount));
-            sb.AppendLine("throw_order=tap_grid_cycle_then_hold_grid_cycle; shuffle seeds seed and seed+17");
+            sb.AppendLine("throw_order=tap_grid_cycle_then_hold_grid_cycle; tap shuffle seed+101, hold shuffle seed+17+202");
             sb.AppendLine("even_hold_follow_up_tap_sec=" + SpikeBenchPlanBuilder.FollowUpTapDurationSec.ToString(CultureInfo.InvariantCulture));
             sb.AppendLine("bench_time_scale=" + BenchTimeScale.ToString(CultureInfo.InvariantCulture));
             sb.AppendLine("verify_realtime_throws=" + SpikeBenchPlanBuilder.VerifyTapPicks + "+" + SpikeBenchPlanBuilder.VerifyHoldPicks);

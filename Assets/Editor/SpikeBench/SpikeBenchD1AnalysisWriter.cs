@@ -29,13 +29,6 @@ namespace SweetBananas.Editor.SpikeBench
             }
 
             sb.AppendLine("max_slack=" + max.ToString(CultureInfo.InvariantCulture));
-            sb.AppendLine();
-            sb.AppendLine("Conclusion (D1):");
-            if (matches.Count > 0 && max > 0.4f && max < 0.5f)
-                sb.AppendLine("- Uniform slack ~0.42 (≈L) on all joints at step0 → check left-left anchor pairing (A15).");
-            if (max > 0.8f)
-                sb.AppendLine("- Uniform slack ~0.85 (≈2L) on X only → segment center vs GetPoint/anchor mismatch or wrong center spacing at Build.");
-            sb.AppendLine("- Isolation baseline step0 without gravity/restore/stick: if slack≠0, not PlaceAlongStick.");
             File.WriteAllText(Path.Combine(SpikeBenchMethodology.LogDirectory(), "d1_analysis.txt"), sb.ToString());
         }
     }

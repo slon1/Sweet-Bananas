@@ -40,7 +40,7 @@ namespace SweetBananas.Editor.SpikeBench
             if (SpikeBenchSession.IsRunning)
                 return;
 
-            SpikeBenchSession.Start("smoke", SpikeBenchMethodology.DefaultSeed, 1f, 3, 1, verifyRealtime: false);
+            SpikeBenchSession.Start("smoke", SpikeBenchMethodology.DefaultSeed, 1f, 2, 2, verifyRealtime: false);
         }
 
         [MenuItem("Sweet Bananas/SpikeBench/Stop Bench")]

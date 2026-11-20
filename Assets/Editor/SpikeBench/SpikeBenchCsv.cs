@@ -30,12 +30,17 @@ namespace SweetBananas.Editor.SpikeBench
             string gapPhase,
             float maxSpeed,
             float rMinThrow,
-            float heldSeconds)
+            float heldSeconds,
+            int firstGap085Step = -1,
+            float firstGap085Value = 0f,
+            int firstGap021Step = -1,
+            float firstGap021Value = 0f,
+            int firstGap021Pair = -1)
         {
             if (!_headerWritten)
             {
                 _writer.WriteLine(
-                    "experiment_id,throw_index,kind,time_scale,spawn_fraction,press_duration_sec,max_gap,a10_break,gap_phase,max_speed,r_min_throw,held_seconds");
+                    "experiment_id,throw_index,kind,time_scale,spawn_fraction,press_duration_sec,max_gap,a10_break,gap_phase,max_speed,r_min_throw,held_seconds,first_gap_085_step,first_gap_085_value,first_gap_021_step,first_gap_021_value,first_gap_021_pair");
                 _headerWritten = true;
             }
 
@@ -51,7 +56,12 @@ namespace SweetBananas.Editor.SpikeBench
                 gapPhase,
                 maxSpeed.ToString(CultureInfo.InvariantCulture),
                 float.IsNaN(rMinThrow) ? "" : rMinThrow.ToString(CultureInfo.InvariantCulture),
-                heldSeconds.ToString(CultureInfo.InvariantCulture)));
+                heldSeconds.ToString(CultureInfo.InvariantCulture),
+                firstGap085Step.ToString(CultureInfo.InvariantCulture),
+                firstGap085Step < 0 ? "" : firstGap085Value.ToString(CultureInfo.InvariantCulture),
+                firstGap021Step.ToString(CultureInfo.InvariantCulture),
+                firstGap021Step < 0 ? "" : firstGap021Value.ToString(CultureInfo.InvariantCulture),
+                firstGap021Pair.ToString(CultureInfo.InvariantCulture)));
         }
 
         public void Dispose()

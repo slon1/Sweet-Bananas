@@ -87,8 +87,8 @@ namespace SweetBananas.Editor.SpikeBench
                 return float.NaN;
 
             float half = ribbon.SegmentLength * 0.5f;
-            Vector2 start = bodies[0].GetPoint(new Vector2(-half, 0f));
-            Vector2 end = bodies[bodies.Count - 1].GetPoint(new Vector2(half, 0f));
+            Vector2 start = bodies[0].GetRelativePoint(new Vector2(-half, 0f));
+            Vector2 end = bodies[bodies.Count - 1].GetRelativePoint(new Vector2(half, 0f));
             float length = ribbon.SegmentLength * bodies.Count;
             if (length < 1e-4f)
                 return float.NaN;
@@ -101,18 +101,29 @@ namespace SweetBananas.Editor.SpikeBench
             if (bodies.Count < 2)
                 return 0f;
 
-            float half = ribbon.SegmentLength * 0.5f;
             float max = 0f;
-            for (int i = 0; i < bodies.Count - 1; i++)
-            {
-                Vector2 a = bodies[i].GetPoint(new Vector2(half, 0f));
-                Vector2 b = bodies[i + 1].GetPoint(new Vector2(-half, 0f));
-                float d = (a - b).magnitude;
-                if (d > max)
-                    max = d;
-            }
-
+            FillPairGaps(ribbon, null, ref max);
             return max;
+        }
+
+        public static void FillPairGaps(Ribbon ribbon, float[] gapsOut, ref float maxOut)
+        {
+            var bodies = ribbon.Bodies;
+            if (bodies.Count < 2)
+                return;
+
+            float half = ribbon.SegmentLength * 0.5f;
+            int pairCount = bodies.Count - 1;
+            for (int i = 0; i < pairCount; i++)
+            {
+                Vector2 a = bodies[i].GetRelativePoint(new Vector2(half, 0f));
+                Vector2 b = bodies[i + 1].GetRelativePoint(new Vector2(-half, 0f));
+                float d = (a - b).magnitude;
+                if (gapsOut != null && i < gapsOut.Length)
+                    gapsOut[i] = d;
+                if (d > maxOut)
+                    maxOut = d;
+            }
         }
 
         public static bool IsA10Break(float maxGap)

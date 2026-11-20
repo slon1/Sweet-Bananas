@@ -49,8 +49,8 @@ namespace SweetBananas.Editor.SpikeBench
                 if (bodyA == null || bodyB == null)
                     continue;
 
-                Vector2 worldA = bodyA.GetPoint(joint.anchor);
-                Vector2 worldB = bodyB.GetPoint(joint.connectedAnchor);
+                Vector2 worldA = bodyA.GetRelativePoint(joint.anchor);
+                Vector2 worldB = bodyB.GetRelativePoint(joint.connectedAnchor);
                 Vector2 delta = worldA - worldB;
                 float slack = delta.magnitude;
 
@@ -100,8 +100,8 @@ namespace SweetBananas.Editor.SpikeBench
                 HingeJoint2D joint = chain.Joints[i];
                 Rigidbody2D bodyA = joint.attachedRigidbody;
                 Rigidbody2D bodyB = joint.connectedBody;
-                Vector2 worldA = bodyA.GetPoint(joint.anchor);
-                Vector2 worldB = bodyB.GetPoint(joint.connectedAnchor);
+                Vector2 worldA = bodyA.GetRelativePoint(joint.anchor);
+                Vector2 worldB = bodyB.GetRelativePoint(joint.connectedAnchor);
                 Vector2 delta = worldA - worldB;
                 float slack = delta.magnitude;
                 sb.AppendLine("joint_index=" + i);
@@ -126,6 +126,30 @@ namespace SweetBananas.Editor.SpikeBench
         {
             SpikeBenchMethodology.EnsureLogDirectory();
             File.WriteAllText(FullDumpPath(), "TASK-002-A2 D1 joint dump\n");
+        }
+
+        public static void WriteFirstTwoHinges(Ribbon ribbon, string phase)
+        {
+            if (ribbon == null)
+                return;
+
+            AppendBanner(phase);
+            var sb = new StringBuilder(1024);
+            var joints = ribbon.Joints;
+            int count = Mathf.Min(2, joints.Count);
+            for (int i = 0; i < count; i++)
+            {
+                HingeJoint2D joint = joints[i];
+                Rigidbody2D bodyA = joint.attachedRigidbody;
+                Rigidbody2D bodyB = joint.connectedBody;
+                Vector2 worldA = bodyA.GetRelativePoint(joint.anchor);
+                Vector2 worldB = bodyB.GetRelativePoint(joint.connectedAnchor);
+                Vector2 delta = worldA - worldB;
+                sb.AppendLine("joint_index=" + i + " slack=" + delta.magnitude.ToString(CultureInfo.InvariantCulture));
+                sb.AppendLine("  worldAnchorA=" + worldA + " worldAnchorB=" + worldB);
+            }
+
+            File.AppendAllText(FullDumpPath(), sb.ToString());
         }
     }
 }

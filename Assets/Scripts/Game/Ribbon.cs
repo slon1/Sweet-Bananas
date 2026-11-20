@@ -18,6 +18,10 @@ namespace SweetBananas.Game
         float _segmentLength;
         bool _built;
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public float LastBuildSlack { get; private set; }
+#endif
+
         public IReadOnlyList<Rigidbody2D> Bodies => _bodies;
         public IReadOnlyList<CapsuleCollider2D> Colliders => _colliders;
         public IReadOnlyList<HingeJoint2D> Joints => _joints;
@@ -74,8 +78,8 @@ namespace SweetBananas.Game
                 if (bodyA == null || bodyB == null)
                     continue;
 
-                Vector2 worldA = bodyA.GetPoint(joint.anchor);
-                Vector2 worldB = bodyB.GetPoint(joint.connectedAnchor);
+                Vector2 worldA = bodyA.GetRelativePoint(joint.anchor);
+                Vector2 worldB = bodyB.GetRelativePoint(joint.connectedAnchor);
                 float slack = (worldA - worldB).magnitude;
                 maxSlack = Mathf.Max(maxSlack, slack);
                 if (slack > 0.001f)
@@ -185,7 +189,7 @@ namespace SweetBananas.Game
             Physics2D.SyncTransforms();
             _built = true;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            ValidateHingeAnchors();
+            LastBuildSlack = ValidateHingeAnchors();
 #endif
         }
 

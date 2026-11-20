@@ -53,9 +53,32 @@ namespace SweetBananas.Editor.SpikeBench
 
         public static string DescribeGridOrder(int seed, int tapCount, int holdCount)
         {
-            var taps = BuildShuffledGrid(seed, SpikeBenchMethodology.SpawnFractions, SpikeBenchMethodology.TapPressDurationsSec);
-            var holds = BuildShuffledGrid(seed + 17, SpikeBenchMethodology.SpawnFractions, SpikeBenchMethodology.HoldPressDurationsSec);
-            return "tap_grid_cells=" + taps.Count + ", hold_grid_cells=" + holds.Count + ", tap_series=" + tapCount + ", hold_series=" + holdCount;
+            int tapShuffle = seed + 101;
+            int holdShuffle = seed + 17 + 202;
+            var taps = BuildShuffledGrid(tapShuffle, SpikeBenchMethodology.SpawnFractions, SpikeBenchMethodology.TapPressDurationsSec);
+            var holds = BuildShuffledGrid(holdShuffle, SpikeBenchMethodology.SpawnFractions, SpikeBenchMethodology.HoldPressDurationsSec);
+            var sb = new System.Text.StringBuilder();
+            sb.Append("tap_grid_cells=").Append(taps.Count);
+            sb.Append(", hold_grid_cells=").Append(holds.Count);
+            sb.Append(", tap_series=").Append(tapCount);
+            sb.Append(", hold_series=").Append(holdCount);
+            sb.Append(", tap_shuffle_seed=").Append(tapShuffle);
+            sb.Append(", hold_shuffle_seed=").Append(holdShuffle);
+            for (int i = 0; i < taps.Count && i < 10; i++)
+            {
+                sb.Append(", tap_cell_").Append(i).Append('=');
+                sb.Append(taps[i].Item1.ToString(CultureInfo.InvariantCulture));
+                sb.Append(':').Append(taps[i].Item2.ToString(CultureInfo.InvariantCulture));
+            }
+
+            for (int i = 0; i < holds.Count && i < 10; i++)
+            {
+                sb.Append(", hold_cell_").Append(i).Append('=');
+                sb.Append(holds[i].Item1.ToString(CultureInfo.InvariantCulture));
+                sb.Append(':').Append(holds[i].Item2.ToString(CultureInfo.InvariantCulture));
+            }
+
+            return sb.ToString();
         }
 
         static List<(float spawn, float duration)> CycleGrid(int seed, float[] spawns, float[] durations, int count, int salt)

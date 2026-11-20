@@ -10,28 +10,43 @@ namespace SweetBananas.Editor.SpikeBench
 {
     public static class SpikeBenchC0Acceptance
     {
-        const float RestWaitSec = 1f;
-        const float FindSceneTimeoutSec = 60f;
+        const float FindSceneTimeoutSec = 90f;
 
-        static bool _running;
-        static bool _awaitingRest;
-        static int _targetFixedSteps;
-        static int _baselineFixedSteps;
+        enum C0Phase
+        {
+            Idle,
+            WaitScene,
+            GapSanity,
+            MetricsAndRest,
+            ThrowFlight,
+            WaitStopped,
+            Done
+        }
+
+        static C0Phase _phase = C0Phase.Idle;
         static ThrowController _throw;
         static Ribbon _ribbon;
         static RibbonMesh _mesh;
+        static Lollipop _lollipop;
         static float _findStart;
+        static int _baselineFixedSteps;
+        static int _restTargetSteps;
+        static int _flightBaselineSteps;
+        static int _stopBaselineSteps;
+        static float _stopElapsed;
+        static string _stamp;
 
         [MenuItem("Sweet Bananas/SpikeBench/Run C0 Acceptance")]
         public static void Run()
         {
-            if (_running)
+            if (_phase != C0Phase.Idle)
                 return;
 
+            SpikeBenchMathSanity.Run();
             SpikeBenchMethodology.EnsureLogDirectory();
-            _running = true;
-            _awaitingRest = false;
+            _phase = C0Phase.WaitScene;
             _findStart = (float)EditorApplication.timeSinceStartup;
+            _stamp = System.DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
             EditorApplication.update += Tick;
 
             var startScene = AssetDatabase.LoadAssetAtPath<SceneAsset>("Assets/Scenes/Scene.unity");
@@ -44,7 +59,7 @@ namespace SweetBananas.Editor.SpikeBench
 
         static void Tick()
         {
-            if (!_running)
+            if (_phase == C0Phase.Idle || _phase == C0Phase.Done)
             {
                 EditorApplication.update -= Tick;
                 return;
@@ -53,92 +68,128 @@ namespace SweetBananas.Editor.SpikeBench
             if (EditorApplication.timeSinceStartup - _findStart > FindSceneTimeoutSec && _throw == null)
             {
                 Debug.LogError("SpikeBench C0: scene timeout.");
-                StopRun();
+                StopAll();
                 return;
             }
 
             if (!Application.isPlaying)
             {
-                StopRun();
+                StopAll();
                 return;
             }
 
-            if (!_awaitingRest)
+            if (_phase == C0Phase.WaitScene)
             {
                 if (!TryFind())
                     return;
-                StartRestProbe();
+                _phase = C0Phase.GapSanity;
+                SpikeBenchGapSanity.StartInSession(_throw, _ribbon, OnGapSanityDone);
                 return;
             }
 
-            if (_throw.FixedSteps - _baselineFixedSteps >= _targetFixedSteps)
-                FinishAndCapture();
+            if (_phase == C0Phase.MetricsAndRest)
+            {
+                if (_throw.FixedSteps - _baselineFixedSteps >= _restTargetSteps)
+                    FinishRestMetrics();
+                return;
+            }
+
+            if (_phase == C0Phase.ThrowFlight)
+            {
+                if (_throw.FixedSteps - _flightBaselineSteps >= 8)
+                {
+                    _throw.DebugSetHeld(false);
+                    CaptureGame("c0_game_flight_" + _stamp + ".png", "flight");
+                    _phase = C0Phase.WaitStopped;
+                    _stopBaselineSteps = _throw.FixedSteps;
+                    _stopElapsed = 0f;
+                }
+
+                return;
+            }
+
+            if (_phase == C0Phase.WaitStopped)
+            {
+                bool stopped = SpikeBenchMeasurements.AllStopped(_ribbon, SpikeBenchMethodology.StopSpeedThreshold);
+                int holdSteps = Mathf.RoundToInt(SpikeBenchMethodology.StopHoldSec / Time.fixedDeltaTime);
+                int elapsed = _throw.FixedSteps - _stopBaselineSteps;
+                if (stopped)
+                    _stopElapsed += Time.deltaTime;
+                else
+                    _stopElapsed = 0f;
+
+                if ((stopped && elapsed >= holdSteps)
+                    || elapsed > Mathf.RoundToInt(5f / Time.fixedDeltaTime))
+                {
+                    CaptureGame("c0_game_after_stop_" + _stamp + ".png", "after_stop");
+                    EditorApplication.ExitPlaymode();
+                    StopAll();
+                }
+            }
         }
 
-        static void StartRestProbe()
+        static void OnGapSanityDone(bool passed)
         {
+            if (!passed)
+            {
+                SpikeBenchJointDump.ResetFile();
+                SpikeBenchJointDump.WriteFirstTwoHinges(_ribbon, "c0_fail_after_fix");
+                Debug.LogError("SpikeBench C0: gap sanity failed — stopped.");
+                EditorApplication.ExitPlaymode();
+                StopAll();
+                return;
+            }
+
             Time.timeScale = 1f;
             _ribbon.ResetToSpawn();
-            float hingeSlack = _ribbon.ValidateHingeAnchors();
-            float gapMax = SpikeBenchMeasurements.MaxAnchorGap(_ribbon);
-
-            string logDir = SpikeBenchMethodology.LogDirectory();
-            var sb = new StringBuilder();
-            sb.AppendLine("hinge_slack_after_reset=" + hingeSlack.ToString(CultureInfo.InvariantCulture));
-            sb.AppendLine("max_pair_gap_after_reset=" + gapMax.ToString(CultureInfo.InvariantCulture));
-            File.WriteAllText(Path.Combine(logDir, "c0_after_reset.txt"), sb.ToString());
-
             _baselineFixedSteps = _throw.FixedSteps;
             int fixedStepsPerSec = Mathf.Max(1, Mathf.RoundToInt(1f / Time.fixedDeltaTime));
-            _targetFixedSteps = Mathf.RoundToInt(RestWaitSec * fixedStepsPerSec);
-            _awaitingRest = true;
+            _restTargetSteps = fixedStepsPerSec;
+            _phase = C0Phase.MetricsAndRest;
         }
 
-        static void FinishAndCapture()
+        static void FinishRestMetrics()
         {
             float hingeSlack = _ribbon.ValidateHingeAnchors();
             float rRest = SpikeBenchMeasurements.ComputeR(_ribbon);
             float meshOffset = MeasureMeshVsCapsules(_ribbon, _mesh);
             string logDir = SpikeBenchMethodology.LogDirectory();
-            string stamp = System.DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
 
             var sb = new StringBuilder();
+            sb.AppendLine("hinge_slack_after_build=" + _ribbon.LastBuildSlack.ToString(CultureInfo.InvariantCulture));
             sb.AppendLine("r_rest_at_1.0s=" + rRest.ToString(CultureInfo.InvariantCulture));
             sb.AppendLine("hinge_slack_at_1.0s=" + hingeSlack.ToString(CultureInfo.InvariantCulture));
             sb.AppendLine("mesh_capsule_center_offset=" + meshOffset.ToString(CultureInfo.InvariantCulture));
             sb.AppendLine("mesh_capsule_ok=" + (meshOffset <= 0.05f ? "1" : "0"));
+            sb.AppendLine("screenshot_note=spawn_preA8_head_dome");
             File.WriteAllText(Path.Combine(logDir, "c0_results.txt"), sb.ToString());
 
-            EditorApplication.isPaused = true;
-            Debug.Log("SpikeBench C0: paused — enable Scene Gizmos, then menu C0 Finish (screenshots + exit play).");
-        }
-
-        static void CaptureSceneView(string path)
-        {
-            SceneView view = SceneView.lastActiveSceneView;
-            if (view == null)
+            if (hingeSlack > SpikeBenchGapSanity.StepSlackLimit || _ribbon.LastBuildSlack > SpikeBenchGapSanity.ResetSlackLimit)
             {
-                Debug.LogWarning("SpikeBench C0: no Scene view to capture.");
+                SpikeBenchJointDump.ResetFile();
+                SpikeBenchJointDump.WriteFirstTwoHinges(_ribbon, "c0_e2_threshold_fail");
+                Debug.LogError("SpikeBench C0: hinge slack threshold failed.");
+                EditorApplication.ExitPlaymode();
+                StopAll();
                 return;
             }
 
-            view.drawGizmos = true;
-            view.Repaint();
-            int w = Mathf.Max(400, (int)view.position.width);
-            int h = Mathf.Max(300, (int)view.position.height);
-            var rt = new RenderTexture(w, h, 24);
-            var prevTarget = view.camera.targetTexture;
-            view.camera.targetTexture = rt;
-            view.camera.Render();
-            RenderTexture.active = rt;
-            var tex = new Texture2D(w, h, TextureFormat.RGB24, false);
-            tex.ReadPixels(new Rect(0, 0, w, h), 0, 0);
-            tex.Apply();
-            view.camera.targetTexture = prevTarget;
-            RenderTexture.active = null;
-            File.WriteAllBytes(path, tex.EncodeToPNG());
-            Object.DestroyImmediate(tex);
-            Object.DestroyImmediate(rt);
+            CaptureGame("c0_game_rest_preA8_" + _stamp + ".png", "rest_preA8");
+
+            _throw.DebugSetDrive(true);
+            _throw.DebugResetFixedSteps();
+            _throw.DebugSetHeld(true);
+            _flightBaselineSteps = _throw.FixedSteps;
+            _phase = C0Phase.ThrowFlight;
+        }
+
+        static void CaptureGame(string fileName, string label)
+        {
+            string path = Path.Combine(SpikeBenchMethodology.LogDirectory(), fileName);
+            ScreenCapture.CaptureScreenshot(path);
+            File.AppendAllText(Path.Combine(SpikeBenchMethodology.LogDirectory(), "c0_screenshots.txt"),
+                label + "=" + path + "\n");
+            Debug.Log("SpikeBench C0 screenshot (" + label + "): enable Game view Gizmos if colliders not visible.");
         }
 
         static float MeasureMeshVsCapsules(Ribbon ribbon, RibbonMesh mesh)
@@ -160,29 +211,19 @@ namespace SweetBananas.Editor.SpikeBench
             _throw = Object.FindAnyObjectByType<ThrowController>();
             _ribbon = Object.FindAnyObjectByType<Ribbon>();
             _mesh = Object.FindAnyObjectByType<RibbonMesh>();
+            _lollipop = Object.FindAnyObjectByType<Lollipop>();
             return _throw != null && _ribbon != null;
         }
 
-        [MenuItem("Sweet Bananas/SpikeBench/C0 Finish (screenshots + exit play)")]
-        public static void FinishPausedC0()
+        static void StopAll()
         {
-            string logDir = SpikeBenchMethodology.LogDirectory();
-            string stamp = System.DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
-            ScreenCapture.CaptureScreenshot(Path.Combine(logDir, $"c0_game_view_{stamp}.png"));
-            CaptureSceneView(Path.Combine(logDir, $"c0_scene_view_{stamp}.png"));
-            EditorApplication.isPaused = false;
-            EditorApplication.ExitPlaymode();
-            StopRun();
-        }
-
-        static void StopRun()
-        {
-            _running = false;
-            _awaitingRest = false;
+            _phase = C0Phase.Done;
             _throw = null;
             _ribbon = null;
             _mesh = null;
+            _lollipop = null;
             EditorApplication.update -= Tick;
+            _phase = C0Phase.Idle;
         }
     }
 }
