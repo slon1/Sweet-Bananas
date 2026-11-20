@@ -122,7 +122,6 @@ namespace SweetBananas.Game
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             FixedSteps++;
-            DebugFixedStep?.Invoke();
             if (_debugDrive)
                 _held = _debugHeld;
 #endif
@@ -183,6 +182,10 @@ namespace SweetBananas.Game
             }
 
             _lollipop.ApplyRotation(_angle);
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            DebugFixedStep?.Invoke();
+#endif
         }
 
         void StepToward(float target, float speed, float dt)

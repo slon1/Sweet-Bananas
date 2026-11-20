@@ -112,7 +112,7 @@ namespace SweetBananas.Game.Debug
                 return;
 
             Vector2 center = _ribbon.Center;
-            float failY = _lollipop.Pivot.y - _config.FailMarginUnits;
+            float failY = -_config.FailMarginUnits;
             float minX = -_config.FailMarginUnits;
             float maxX = _config.WorldWidthUnits + _config.FailMarginUnits;
             if (center.y < failY || center.x < minX || center.x > maxX)

@@ -135,10 +135,10 @@ namespace SweetBananas.Editor.SpikeBench
 
         public static bool FailBounds(Ribbon ribbon, Lollipop lollipop, GameConfig config)
         {
-            if (ribbon == null || lollipop == null || config == null)
+            if (ribbon == null || config == null)
                 return false;
             Vector2 center = ribbon.Center;
-            float failY = lollipop.Pivot.y - config.FailMarginUnits;
+            float failY = -config.FailMarginUnits;
             float minX = -config.FailMarginUnits;
             float maxX = config.WorldWidthUnits + config.FailMarginUnits;
             return center.y < failY || center.x < minX || center.x > maxX;

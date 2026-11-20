@@ -109,17 +109,8 @@ namespace SweetBananas.Editor.SpikeBench
             sb.AppendLine("mesh_capsule_ok=" + (meshOffset <= 0.05f ? "1" : "0"));
             File.WriteAllText(Path.Combine(logDir, "c0_results.txt"), sb.ToString());
 
-            string gamePath = Path.Combine(logDir, $"c0_game_view_{stamp}.png");
-            ScreenCapture.CaptureScreenshot(gamePath);
-
-            EditorApplication.delayCall += () =>
-            {
-                var scenePath = Path.Combine(logDir, $"c0_scene_view_{stamp}.png");
-                CaptureSceneView(scenePath);
-                Debug.Log("SpikeBench C0 complete. Results in " + logDir);
-                EditorApplication.ExitPlaymode();
-                StopRun();
-            };
+            EditorApplication.isPaused = true;
+            Debug.Log("SpikeBench C0: paused — enable Scene Gizmos, then menu C0 Finish (screenshots + exit play).");
         }
 
         static void CaptureSceneView(string path)
@@ -170,6 +161,18 @@ namespace SweetBananas.Editor.SpikeBench
             _ribbon = Object.FindAnyObjectByType<Ribbon>();
             _mesh = Object.FindAnyObjectByType<RibbonMesh>();
             return _throw != null && _ribbon != null;
+        }
+
+        [MenuItem("Sweet Bananas/SpikeBench/C0 Finish (screenshots + exit play)")]
+        public static void FinishPausedC0()
+        {
+            string logDir = SpikeBenchMethodology.LogDirectory();
+            string stamp = System.DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
+            ScreenCapture.CaptureScreenshot(Path.Combine(logDir, $"c0_game_view_{stamp}.png"));
+            CaptureSceneView(Path.Combine(logDir, $"c0_scene_view_{stamp}.png"));
+            EditorApplication.isPaused = false;
+            EditorApplication.ExitPlaymode();
+            StopRun();
         }
 
         static void StopRun()
