@@ -150,7 +150,7 @@ namespace SweetBananas.Editor.SpikeBench
         {
             float f = GapFractions[_fractionIndex];
             _ribbon.ResetToSpawn(f);
-            float slack = _ribbon.ValidateHingeAnchors();
+            float slack = _ribbon.MaxHingeSlack();
             float clear = _ribbon.MinSpawnClearanceDistance();
             _log.AppendLine(string.Format(CultureInfo.InvariantCulture,
                 "fraction={0:F2} after_reset hinge_slack={1} last_spawn_lift={2} min_clearance_step0={3}",
@@ -183,7 +183,7 @@ namespace SweetBananas.Editor.SpikeBench
             {
                 if (_throw.FixedSteps - _baselineFixedSteps >= _restTargetSteps)
                 {
-                    float slack = _ribbon.ValidateHingeAnchors();
+                    float slack = _ribbon.MaxHingeSlack();
                     float r = SpikeBenchMeasurements.ComputeR(_ribbon);
                     _log.AppendLine("rest_1.0s_hinge_slack=" + slack.ToString(CultureInfo.InvariantCulture));
                     _log.AppendLine("rest_1.0s_R=" + (float.IsNaN(r) ? "NaN" : r.ToString(CultureInfo.InvariantCulture)));
@@ -205,7 +205,7 @@ namespace SweetBananas.Editor.SpikeBench
             if (steps < target)
                 return;
 
-            float stepSlack = _ribbon.ValidateHingeAnchors();
+            float stepSlack = _ribbon.MaxHingeSlack();
             _log.AppendLine(string.Format(CultureInfo.InvariantCulture,
                 "fraction={0:F2} step={1} hinge_slack={2}",
                 GapFractions[_fractionIndex], target, stepSlack));
@@ -225,7 +225,7 @@ namespace SweetBananas.Editor.SpikeBench
             }
 
             _ribbon.ResetToSpawn();
-            float afterDefault = _ribbon.ValidateHingeAnchors();
+            float afterDefault = _ribbon.MaxHingeSlack();
             _log.AppendLine("after_default_reset_hinge_slack=" + afterDefault.ToString(CultureInfo.InvariantCulture));
             if (afterDefault > ResetSlackLimit)
                 _failed = true;

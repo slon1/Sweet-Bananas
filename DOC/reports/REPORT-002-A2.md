@@ -190,19 +190,58 @@
 
 ### Вердикт F2
 
-F2.1–F2.2 **выполнены**. Стоп перед **E0** (ждать «E0 можно»).
+F2.1–F2.2 **выполнены**.
 
 ---
 
-## 8. Открытые пункты / стоп
+## 8. E0 baseline (amendment-7, spawn controls)
+
+**Прогон:** 2026-11-20. **G1–G3** (контроль спавна, `MaxHingeSlack` на шагах, серия 100+20 @ 12× + verify 10 @ 1×).
+
+### Smoke перед E0 (@ 1×)
+
+`summary_smoke_2760704_20261120_221209.txt`: `spawn_invalid_count=0`. Бросок **hold @ 0.25** (index 2): `spawn_clearance_step0=0.0231`, `spawn_invalid=0`.
+
+### E0 @ 12×
+
+`summary_E0_2760704_20261120_221256.txt`, CSV: `Logs/SpikeBench/throws_E0_2760704_20261120_221256.csv`.
+
+| Метрика | Значение |
+|---------|----------|
+| throws / valid | 120 / 120 |
+| **spawn_invalid** | **0 (0 %)** |
+| a10_breaks (valid, first &gt; 0.21) | 5 |
+| a10_soft_bin_limit (valid) | 6 |
+| max_gap (valid, до freeze &gt; 0.21) | 0.350 |
+| r_min_throw min / median (valid) | 0.00076 / 0.556 |
+
+Гистограмма max_gap (valid), фаза @ max до freeze: **все 120** — `contact` (бин 0.085: 67; 0.085–0.21: 48; 0.21–0.5: 5).
+
+События first &gt; 0.21 (valid): throws 11, 18, 53, 60, 95 — все `contact`, пары 6, шаги 33/38.
+
+**Отрицательный C0 clearance:** на E0 invalid нет; гипотеза `Physics2D.SyncTransforms()` перед замером — **подкреплена данными** (без отдельного прогона).
+
+### verify1×
+
+`summary_E0_verify1x_2760704_20261120_221256_verify1x.txt`: `verify_a10_flag_matches=10/10`, `verify_max_gap_delta≈0.084`, `verify_result=match`.
+
+### Отложено (по 7a)
+
+- **C7 / RibbonMesh** — не делалось.
+- **B6 / B7** (`Run Rest Probe`, колонки rest) — отдельный коммит после этого отчёта, до E2.
+
+**Стоп после E0** — ждать архитектора.
+
+---
+
+## 9. Открытые пункты / стоп
 
 1. **До A8 (история):** gap_sanity_pass=0 на 0.50@step5, smoke hold 0.25 A10 — overlap при старом спавне.
-2. **После amendment-6:** приёмка F2.1–F2.2 — по свежим логам.
-3. **E0** — только после «E0 можно».
+2. **E2+** — по решению архитектора после E0.
 
 ---
 
-## 9. Где смотреть сырьё (оператор)
+## 10. Где смотреть сырьё (оператор)
 
 | Артефакт | Путь |
 |----------|------|
@@ -211,6 +250,7 @@ F2.1–F2.2 **выполнены**. Стоп перед **E0** (ждать «E0 
 | Overlap | `Logs/SpikeBench/gap_sanity_overlap_diag.txt` |
 | Math | `Logs/SpikeBench/math_sanity.txt` |
 | Smoke / trace | `throws_smoke_*.csv`, `trace_smoke_*.csv` |
+| E0 | `throws_E0_*.csv`, `summary_E0_*.txt`, `summary_E0_verify1x_*.txt` |
 | D1 dump | `c0_joint_dump.txt` (большой) |
 
 При следующей вехе этот раздел REPORT обновлять и коммитить вместе с `DOC/reports/REPORT-002-A2.md`.

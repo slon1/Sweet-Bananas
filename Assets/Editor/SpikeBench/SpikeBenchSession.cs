@@ -85,7 +85,19 @@ namespace SweetBananas.Editor.SpikeBench
         static int _totalBreaks;
         static int _bin085to21;
         static readonly int[] _histogram = new int[5];
+        static readonly int[] _histContact = new int[5];
+        static readonly int[] _histFlight = new int[5];
+        static readonly int[] _histStopped = new int[5];
         static float _seriesMaxGap;
+
+        static float _spawnClearanceStep0;
+        static bool _currentThrowInvalid;
+        static float _spawnAngle;
+        static int _spawnFixedStepsAtClearance;
+        static float _hingeSlackMax;
+        static int _spawnInvalidCount;
+        static readonly List<float> _rMinValid = new();
+        static readonly List<string> _firstGap021Events = new();
 
         static readonly float[] _pairGapsBuf = new float[7];
         static bool _gapMetricsFrozen;
@@ -174,7 +186,13 @@ namespace SweetBananas.Editor.SpikeBench
             _totalBreaks = 0;
             _bin085to21 = 0;
             Array.Clear(_histogram, 0, _histogram.Length);
+            Array.Clear(_histContact, 0, _histContact.Length);
+            Array.Clear(_histFlight, 0, _histFlight.Length);
+            Array.Clear(_histStopped, 0, _histStopped.Length);
             _seriesMaxGap = 0f;
+            _spawnInvalidCount = 0;
+            _rMinValid.Clear();
+            _firstGap021Events.Clear();
             StartThrow(_plans[_planIndex]);
             Debug.Log("SpikeBench: started " + csvExperiment + " seed=" + _seed + " timeScale=" + _timeScale);
         }
@@ -196,6 +214,12 @@ namespace SweetBananas.Editor.SpikeBench
             _ribbon.ResetToSpawn(plan.SpawnFraction);
             _throw.DebugResetFixedSteps();
             _spawnFixedStep = _throw.FixedSteps;
+            _spawnFixedStepsAtClearance = _throw.FixedSteps;
+            Physics2D.SyncTransforms();
+            _spawnClearanceStep0 = _ribbon.MinSpawnClearanceDistance();
+            _currentThrowInvalid = _spawnClearanceStep0 < 0.01f;
+            _spawnAngle = _lollipop != null ? _lollipop.Angle : 0f;
+            _hingeSlackMax = _ribbon.MaxHingeSlack();
             _pressElapsed = 0f;
             _freeElapsed = 0f;
             _stopElapsed = 0f;
@@ -294,50 +318,56 @@ namespace SweetBananas.Editor.SpikeBench
                 _ => "unknown"
             };
 
-            if (!_gapMetricsFrozen)
+            _hingeSlackMax = Mathf.Max(_hingeSlackMax, _ribbon.MaxHingeSlack());
+
+            float speed = 0f;
+            float rSample = float.NaN;
+            if (!_currentThrowInvalid)
             {
-                if (maxPair > _maxGap)
+                if (!_gapMetricsFrozen)
                 {
-                    _maxGap = maxPair;
-                    _gapPhaseAtMax = _phase;
-                }
-
-                if (_firstGap085Step < 0 && maxPair > SpikeBenchMethodology.GapHardVisual)
-                {
-                    _firstGap085Step = _throwPhysicsStep;
-                    _firstGap085Value = maxPair;
-                    _firstGap085Pair = worstPair;
-                    _firstGap085Phase = phaseName;
-                }
-
-                if (maxPair > SpikeBenchMethodology.GapBreakSoft)
-                {
-                    if (_firstGap021Step < 0)
+                    if (maxPair > _maxGap)
                     {
-                        _firstGap021Step = _throwPhysicsStep;
-                        _firstGap021Value = maxPair;
-                        _firstGap021Pair = worstPair;
-                        _firstGap021Phase = phaseName;
+                        _maxGap = maxPair;
+                        _gapPhaseAtMax = _phase;
                     }
 
-                    _gapMetricsFrozen = true;
+                    if (_firstGap085Step < 0 && maxPair > SpikeBenchMethodology.GapHardVisual)
+                    {
+                        _firstGap085Step = _throwPhysicsStep;
+                        _firstGap085Value = maxPair;
+                        _firstGap085Pair = worstPair;
+                        _firstGap085Phase = phaseName;
+                    }
+
+                    if (maxPair > SpikeBenchMethodology.GapBreakSoft)
+                    {
+                        if (_firstGap021Step < 0)
+                        {
+                            _firstGap021Step = _throwPhysicsStep;
+                            _firstGap021Value = maxPair;
+                            _firstGap021Pair = worstPair;
+                            _firstGap021Phase = phaseName;
+                        }
+
+                        _gapMetricsFrozen = true;
+                    }
+                }
+
+                speed = SpikeBenchMeasurements.MaxSegmentSpeed(_ribbon);
+                if (speed > _maxSpeed)
+                    _maxSpeed = speed;
+
+                if (!_gapMetricsFrozen && _throw.FixedSteps - _spawnFixedStep >= _rMinExcludeFixedSteps)
+                {
+                    float r = SpikeBenchMeasurements.ComputeR(_ribbon);
+                    rSample = r;
+                    if (!float.IsNaN(r) && r < _rMin)
+                        _rMin = r;
                 }
             }
 
-            float speed = SpikeBenchMeasurements.MaxSegmentSpeed(_ribbon);
-            if (speed > _maxSpeed)
-                _maxSpeed = speed;
-
-            float rSample = float.NaN;
-            if (!_gapMetricsFrozen && _throw.FixedSteps - _spawnFixedStep >= _rMinExcludeFixedSteps)
-            {
-                float r = SpikeBenchMeasurements.ComputeR(_ribbon);
-                rSample = r;
-                if (!float.IsNaN(r) && r < _rMin)
-                    _rMin = r;
-            }
-
-            if (_trace != null && _current.Index == 0)
+            if (_trace != null && _current.Index == 0 && !_currentThrowInvalid)
             {
                 float stickAngle = _lollipop != null ? _lollipop.Angle : 0f;
                 _trace.WriteRow(_throwPhysicsStep, _pairGapsBuf, speed, phaseName, rSample, stickAngle);
@@ -411,7 +441,7 @@ namespace SweetBananas.Editor.SpikeBench
             if (_rMin == float.PositiveInfinity)
                 _rMin = float.NaN;
 
-            bool a10 = _firstGap021Step >= 0;
+            bool a10 = !_currentThrowInvalid && _firstGap021Step >= 0;
             string phaseName = _gapPhaseAtMax switch
             {
                 SpikeGapPhase.Contact => "contact",
@@ -438,13 +468,18 @@ namespace SweetBananas.Editor.SpikeBench
                 a10,
                 phaseName,
                 _maxSpeed,
-                _rMin,
+                _currentThrowInvalid ? float.NaN : _rMin,
                 _heldSeconds,
                 _firstGap085Step,
                 _firstGap085Value,
                 _firstGap021Step,
                 _firstGap021Value,
-                _firstGap021Pair);
+                _firstGap021Pair,
+                _spawnClearanceStep0,
+                _currentThrowInvalid,
+                _spawnAngle,
+                _spawnFixedStepsAtClearance,
+                _hingeSlackMax);
 
             var recorded = new ThrowResult(_current.Index, _maxGap, a10, phaseName);
             if (_isVerifyRun)
@@ -452,15 +487,39 @@ namespace SweetBananas.Editor.SpikeBench
             else
                 _mainResults.Add(recorded);
 
-            if (a10)
-                _totalBreaks++;
-            if (_maxGap > SpikeBenchMethodology.GapHardVisual && _maxGap <= SpikeBenchMethodology.GapBreakSoft)
-                _bin085to21++;
-            int bin = SpikeBenchMeasurements.HistogramBin(_maxGap);
-            if (bin >= 0 && bin < _histogram.Length)
-                _histogram[bin]++;
-            if (_maxGap > _seriesMaxGap)
-                _seriesMaxGap = _maxGap;
+            if (_currentThrowInvalid)
+            {
+                _spawnInvalidCount++;
+            }
+            else
+            {
+                if (a10)
+                    _totalBreaks++;
+                if (_maxGap > SpikeBenchMethodology.GapHardVisual && _maxGap <= SpikeBenchMethodology.GapBreakSoft)
+                    _bin085to21++;
+                int bin = SpikeBenchMeasurements.HistogramBin(_maxGap);
+                if (bin >= 0 && bin < _histogram.Length)
+                    _histogram[bin]++;
+                int[] phaseHist = _gapPhaseAtMax switch
+                {
+                    SpikeGapPhase.Contact => _histContact,
+                    SpikeGapPhase.Flight => _histFlight,
+                    SpikeGapPhase.Stopped => _histStopped,
+                    _ => null
+                };
+                if (phaseHist != null && bin >= 0 && bin < phaseHist.Length)
+                    phaseHist[bin]++;
+                if (_maxGap > _seriesMaxGap)
+                    _seriesMaxGap = _maxGap;
+                if (!float.IsNaN(_rMin))
+                    _rMinValid.Add(_rMin);
+                if (_firstGap021Step >= 0)
+                {
+                    _firstGap021Events.Add(string.Format(CultureInfo.InvariantCulture,
+                        "first_gt_021 throw={0} phase={1} step={2} pair={3} value={4:F4}",
+                        _current.Index, _firstGap021Phase, _firstGap021Step, _firstGap021Pair, _firstGap021Value));
+                }
+            }
 
             _planIndex++;
             if (_planIndex >= _plans.Count)
@@ -478,6 +537,21 @@ namespace SweetBananas.Editor.SpikeBench
             _state = SessionState.Done;
             Debug.Log("SpikeBench: series complete. Logs in " + SpikeBenchMethodology.LogDirectory());
 
+            if (!_isVerifyRun && _planIndex > 0)
+            {
+                float invalidPct = 100f * _spawnInvalidCount / _planIndex;
+                if (_spawnInvalidCount * 100f > _planIndex * 2f)
+                {
+                    SpikeBenchJointDump.WriteSpawnInvalidDump(_ribbon, _lollipop, _spawnInvalidCount, invalidPct);
+                    Debug.LogError(string.Format(CultureInfo.InvariantCulture,
+                        "SpikeBench: E0 aborted — spawn_invalid {0} ({1:F2}%) > 2%. Dump: {2}",
+                        _spawnInvalidCount, invalidPct, SpikeBenchJointDump.FullDumpPath()));
+                    TearDown();
+                    EditorApplication.ExitPlaymode();
+                    return;
+                }
+            }
+
             if (_verifyRealtime && _timeScale > 1.01f && !_isVerifyRun)
             {
                 _timeScale = 1f;
@@ -488,7 +562,13 @@ namespace SweetBananas.Editor.SpikeBench
                 _totalBreaks = 0;
                 _bin085to21 = 0;
                 Array.Clear(_histogram, 0, _histogram.Length);
+                Array.Clear(_histContact, 0, _histContact.Length);
+                Array.Clear(_histFlight, 0, _histFlight.Length);
+                Array.Clear(_histStopped, 0, _histStopped.Length);
                 _seriesMaxGap = 0f;
+                _spawnInvalidCount = 0;
+                _rMinValid.Clear();
+                _firstGap021Events.Clear();
                 _verifyResults.Clear();
                 _plans.Clear();
                 _plans.AddRange(SpikeBenchPlanBuilder.PickVerifyPlans(_mainPlansForVerify));
@@ -515,21 +595,62 @@ namespace SweetBananas.Editor.SpikeBench
             sb.AppendLine("seed=" + _seed);
             sb.AppendLine("time_scale=" + _timeScale.ToString(CultureInfo.InvariantCulture));
             sb.AppendLine("throws=" + throwsDone);
-            sb.AppendLine("a10_breaks_gt_0.21=" + _totalBreaks);
-            sb.AppendLine("bin_0.085_0.21=" + _bin085to21);
-            sb.AppendLine("max_gap=" + _seriesMaxGap.ToString(CultureInfo.InvariantCulture));
-            sb.AppendLine("histogram_0_0.085=" + _histogram[0]);
-            sb.AppendLine("histogram_1_0.085_0.21=" + _histogram[1]);
-            sb.AppendLine("histogram_2_0.21_0.5=" + _histogram[2]);
-            sb.AppendLine("histogram_3_0.5_1=" + _histogram[3]);
-            sb.AppendLine("histogram_4_gt_1=" + _histogram[4]);
-            int softLimit = throwsDone > 0 ? Mathf.FloorToInt(throwsDone * 0.05f) : 0;
-            sb.AppendLine("a10_soft_bin_limit=" + softLimit);
+            sb.AppendLine("spawn_invalid_count=" + _spawnInvalidCount);
+            float invalidPct = throwsDone > 0 ? 100f * _spawnInvalidCount / throwsDone : 0f;
+            sb.AppendLine("spawn_invalid_pct=" + invalidPct.ToString(CultureInfo.InvariantCulture));
+            sb.AppendLine("valid_throws=" + (throwsDone - _spawnInvalidCount));
+            sb.AppendLine("a10_breaks_gt_0.21_valid=" + _totalBreaks);
+            sb.AppendLine("bin_0.085_0.21_valid=" + _bin085to21);
+            sb.AppendLine("max_gap_valid=" + _seriesMaxGap.ToString(CultureInfo.InvariantCulture));
+            AppendHistogram(sb, "histogram_valid", _histogram);
+            AppendHistogram(sb, "histogram_contact", _histContact);
+            AppendHistogram(sb, "histogram_flight", _histFlight);
+            AppendHistogram(sb, "histogram_stopped", _histStopped);
+            float rMinMin = float.NaN;
+            float rMinMedian = float.NaN;
+            if (_rMinValid.Count > 0)
+            {
+                rMinMin = _rMinValid[0];
+                foreach (float v in _rMinValid)
+                    if (v < rMinMin)
+                        rMinMin = v;
+                rMinMedian = MedianRMin(_rMinValid);
+            }
+
+            sb.AppendLine("r_min_throw_min_valid=" + (float.IsNaN(rMinMin) ? "" : rMinMin.ToString(CultureInfo.InvariantCulture)));
+            sb.AppendLine("r_min_throw_median_valid=" + (float.IsNaN(rMinMedian) ? "" : rMinMedian.ToString(CultureInfo.InvariantCulture)));
+            foreach (string line in _firstGap021Events)
+                sb.AppendLine(line);
+
+            int validThrows = throwsDone - _spawnInvalidCount;
+            int softLimit = validThrows > 0 ? Mathf.FloorToInt(validThrows * 0.05f) : 0;
+            sb.AppendLine("a10_soft_bin_limit_valid=" + softLimit);
 
             if (_isVerifyRun && _mainResults.Count > 0)
                 AppendVerifyComparison(sb);
 
             File.WriteAllText(summaryPath, sb.ToString());
+        }
+
+        static void AppendHistogram(StringBuilder sb, string prefix, int[] hist)
+        {
+            sb.AppendLine(prefix + "_0_0.085=" + hist[0]);
+            sb.AppendLine(prefix + "_1_0.085_0.21=" + hist[1]);
+            sb.AppendLine(prefix + "_2_0.21_0.5=" + hist[2]);
+            sb.AppendLine(prefix + "_3_0.5_1=" + hist[3]);
+            sb.AppendLine(prefix + "_4_gt_1=" + hist[4]);
+        }
+
+        static float MedianRMin(List<float> values)
+        {
+            if (values.Count == 0)
+                return float.NaN;
+            float[] sorted = values.ToArray();
+            Array.Sort(sorted);
+            int mid = sorted.Length / 2;
+            return sorted.Length % 2 == 0
+                ? (sorted[mid - 1] + sorted[mid]) * 0.5f
+                : sorted[mid];
         }
 
         static void AppendVerifyComparison(StringBuilder sb)

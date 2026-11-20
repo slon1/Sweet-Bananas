@@ -128,6 +128,35 @@ namespace SweetBananas.Editor.SpikeBench
             File.WriteAllText(FullDumpPath(), "TASK-002-A2 D1 joint dump\n");
         }
 
+        public static void WriteSpawnInvalidDump(Ribbon ribbon, Lollipop lollipop, int invalidCount, float invalidPct)
+        {
+            ResetFile();
+            AppendBanner("e0_spawn_invalid_abort");
+            var sb = new StringBuilder(512);
+            sb.AppendLine("spawn_invalid_count=" + invalidCount);
+            sb.AppendLine("spawn_invalid_pct=" + invalidPct.ToString(CultureInfo.InvariantCulture));
+            if (lollipop != null)
+            {
+                sb.AppendLine("lollipop_position=" + lollipop.transform.position);
+                sb.AppendLine("lollipop_angle=" + lollipop.Angle.ToString(CultureInfo.InvariantCulture));
+            }
+
+            if (ribbon != null)
+            {
+                var bodies = ribbon.Bodies;
+                int count = Mathf.Min(2, bodies.Count);
+                for (int i = 0; i < count; i++)
+                {
+                    Rigidbody2D body = bodies[i];
+                    sb.AppendLine("segment_index=" + i + " pos=" + body.position + " rot=" + body.rotation);
+                }
+
+                WriteFirstTwoHinges(ribbon, "e0_spawn_invalid_hinges");
+            }
+
+            File.AppendAllText(FullDumpPath(), sb.ToString());
+        }
+
         public static void WriteFirstTwoHinges(Ribbon ribbon, string phase)
         {
             if (ribbon == null)

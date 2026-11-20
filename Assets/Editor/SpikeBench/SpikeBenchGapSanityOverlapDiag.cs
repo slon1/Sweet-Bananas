@@ -82,7 +82,7 @@ namespace SweetBananas.Editor.SpikeBench
                 if (_throw.FixedSteps - _stepBaseline < 1)
                     return;
 
-                float slack = _ribbon.ValidateHingeAnchors();
+                float slack = _ribbon.MaxHingeSlack();
                 _log.AppendLine(string.Format(CultureInfo.InvariantCulture,
                     "fraction={0:F2} step=1 hinge_slack_with_ignore={1}",
                     Fractions[_fractionIndex], slack));

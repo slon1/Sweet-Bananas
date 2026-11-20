@@ -72,7 +72,7 @@ namespace SweetBananas.Game
         }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        public float ValidateHingeAnchors()
+        public float MaxHingeSlack()
         {
             float maxSlack = 0f;
             for (int i = 0; i < _joints.Count; i++)
@@ -87,6 +87,25 @@ namespace SweetBananas.Game
                 Vector2 worldB = bodyB.GetRelativePoint(joint.connectedAnchor);
                 float slack = (worldA - worldB).magnitude;
                 maxSlack = Mathf.Max(maxSlack, slack);
+            }
+
+            return maxSlack;
+        }
+
+        public float ValidateHingeAnchors()
+        {
+            float maxSlack = MaxHingeSlack();
+            for (int i = 0; i < _joints.Count; i++)
+            {
+                HingeJoint2D joint = _joints[i];
+                Rigidbody2D bodyA = joint.attachedRigidbody;
+                Rigidbody2D bodyB = joint.connectedBody;
+                if (bodyA == null || bodyB == null)
+                    continue;
+
+                Vector2 worldA = bodyA.GetRelativePoint(joint.anchor);
+                Vector2 worldB = bodyB.GetRelativePoint(joint.connectedAnchor);
+                float slack = (worldA - worldB).magnitude;
                 if (slack > 0.001f)
                     UnityEngine.Debug.LogError($"Ribbon hinge {i} anchor slack {slack:F6} (limit 0.001)");
             }
@@ -240,6 +259,8 @@ namespace SweetBananas.Game
         {
             if (_lollipop == null || _colliders.Count == 0)
                 return float.PositiveInfinity;
+
+            Physics2D.SyncTransforms();
 
             Collider2D head = _lollipop.HeadCollider;
             Collider2D stick = _lollipop.StickCollider;

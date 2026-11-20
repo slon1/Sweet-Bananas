@@ -172,7 +172,7 @@ namespace SweetBananas.Editor.SpikeBench
             _ribbon = Object.FindAnyObjectByType<Ribbon>();
             _mesh = Object.FindAnyObjectByType<RibbonMesh>();
             Physics2D.SyncTransforms();
-            float hingeSlack = _ribbon != null ? _ribbon.ValidateHingeAnchors() : float.NaN;
+            float hingeSlack = _ribbon != null ? _ribbon.MaxHingeSlack() : float.NaN;
             float rRest = _ribbon != null ? SpikeBenchMeasurements.ComputeR(_ribbon) : float.NaN;
             float meshOffset = MeasureMeshVsCapsules(_ribbon, _mesh);
             string logDir = SpikeBenchMethodology.LogDirectory();
