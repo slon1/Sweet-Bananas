@@ -25,6 +25,13 @@ namespace SweetBananas.Editor.SpikeBench
         }
 
         static readonly int[] BreakIndices = SpikeBenchE0Analysis.BreakThrowIndices;
+        static readonly Dictionary<int, int> E0EventStep = new()
+        {
+            { 11, 33 }, { 18, 38 }, { 53, 33 }, { 60, 38 }, { 95, 33 }
+        };
+
+        static bool _h1bContacts;
+        static StreamWriter _h1bWriter;
 
         static State _state = State.Idle;
         static int _seed = SpikeBenchMethodology.DefaultSeed;
@@ -51,6 +58,7 @@ namespace SweetBananas.Editor.SpikeBench
         static SpikeGapPhase _phase = SpikeGapPhase.Contact;
         static bool _followUpTapDone;
         static int _throwPhysicsStep;
+        static int _h1bContactEventStep = -1;
         static int _firstGap021Step = -1;
         static int _firstGap021Pair;
         static bool _gapFrozen;
@@ -65,7 +73,16 @@ namespace SweetBananas.Editor.SpikeBench
         {
             if (IsRunning || SpikeBenchSession.IsRunning)
                 return;
+            _h1bContacts = false;
             Start(SpikeBenchMethodology.DefaultSeed, SpikeBenchMethodology.BenchTimeScale);
+        }
+
+        public static void StartH1b(int seed, float timeScale)
+        {
+            if (IsRunning || SpikeBenchSession.IsRunning)
+                return;
+            _h1bContacts = true;
+            Start(seed, timeScale);
         }
 
         public static void Start(int seed, float timeScale)
@@ -157,7 +174,17 @@ namespace SweetBananas.Editor.SpikeBench
             _firstGap021Step = -1;
             _throwPhysicsStep = 0;
             _trace?.Dispose();
-            _trace = new SpikeBenchExtendedTrace($"trace_E0_{_throwIndex}.csv");
+            string traceName = _h1bContacts ? $"trace_H1b_{_throwIndex}.csv" : $"trace_E0_{_throwIndex}.csv";
+            _trace = new SpikeBenchExtendedTrace(traceName);
+            _h1bWriter?.Dispose();
+            _h1bWriter = null;
+            if (_h1bContacts && E0EventStep.TryGetValue(_throwIndex, out int ev))
+            {
+                _h1bWriter = new StreamWriter(Path.Combine(SpikeBenchMethodology.LogDirectory(),
+                    $"trace_H1b_{_throwIndex}_contacts.csv"), false, System.Text.Encoding.UTF8);
+                _h1bWriter.WriteLine("step,seg,collider,point_x,point_y,separation,normalImpulse,relVelMag");
+                _h1bContactEventStep = ev;
+            }
             _throw.DebugSetHeld(true);
             _state = State.ThrowPress;
         }
@@ -248,6 +275,12 @@ namespace SweetBananas.Editor.SpikeBench
             }
 
             _trace?.WriteRow(_throwPhysicsStep, _gaps, _ribbon, _lollipop, _throw, phaseName);
+            if (_h1bWriter != null && _h1bContactEventStep >= 0 &&
+                _throwPhysicsStep >= _h1bContactEventStep - 5 && _throwPhysicsStep <= _h1bContactEventStep + 3)
+            {
+                WriteContacts(_throwPhysicsStep);
+            }
+
             _throwPhysicsStep++;
 
             if (_state == State.ThrowPress || _state == State.ThrowSecondPress)
@@ -294,12 +327,51 @@ namespace SweetBananas.Editor.SpikeBench
             }
         }
 
+        static void WriteContacts(int step)
+        {
+            if (_ribbon == null || _lollipop == null)
+                return;
+            Collider2D head = _lollipop.HeadCollider;
+            Collider2D stick = _lollipop.StickCollider;
+            var colliders = _ribbon.Colliders;
+            for (int s = 0; s < colliders.Count; s++)
+            {
+                CapsuleCollider2D seg = colliders[s];
+                if (seg == null)
+                    continue;
+                WriteColliderContacts(step, s, "head", head, seg);
+                WriteColliderContacts(step, s, "stick", stick, seg);
+            }
+        }
+
+        static void WriteColliderContacts(int step, int segIndex, string name, Collider2D target, Collider2D segment)
+        {
+            if (target == null || segment == null)
+                return;
+            if (!segment.IsTouching(target))
+                return;
+
+            ColliderDistance2D dist = Physics2D.Distance(segment, target);
+            Vector2 mid = (dist.pointA + dist.pointB) * 0.5f;
+            _h1bWriter.WriteLine(string.Join(",", step, segIndex, name,
+                mid.x.ToString(CultureInfo.InvariantCulture),
+                mid.y.ToString(CultureInfo.InvariantCulture),
+                dist.distance.ToString(CultureInfo.InvariantCulture),
+                "0",
+                "0"));
+        }
+
         static void FinishThrow()
         {
             _trace?.Dispose();
             _trace = null;
+            _h1bWriter?.Flush();
+            _h1bWriter?.Dispose();
+            _h1bWriter = null;
             bool broke = _firstGap021Step >= 0;
             string line = SpikeBenchH1Conclusions.AnalyzeTraceFile(_throwIndex, _timeScale, broke, _firstGap021Step, _firstGap021Pair);
+            if (_h1bContacts)
+                line = SpikeBenchH1Conclusions.SummarizeContacts(_throwIndex, _firstGap021Step, _firstGap021Pair) ?? line;
             SpikeBenchH1Conclusions.Append(line);
             _planIndex++;
             if (_planIndex >= _plans.Count)
@@ -364,6 +436,39 @@ namespace SweetBananas.Editor.SpikeBench
                    " stick_omega=" + omega.ToString("F1", CultureInfo.InvariantCulture) +
                    " phase=" + phase + " press_state=" + throwState +
                    " repro=1";
+        }
+
+        public static string SummarizeContacts(int throwIndex, int breakStep, int breakPair)
+        {
+            string path = Path.Combine(SpikeBenchMethodology.LogDirectory(), $"trace_H1b_{throwIndex}_contacts.csv");
+            if (!File.Exists(path) || breakStep < 0)
+                return null;
+            int bestSeg = -1;
+            string bestCollider = "";
+            float maxImpulse = 0f;
+            foreach (string line in File.ReadAllLines(path))
+            {
+                if (line.StartsWith("step", StringComparison.Ordinal))
+                    continue;
+                string[] p = line.Split(',');
+                if (p.Length < 7)
+                    continue;
+                if (!int.TryParse(p[0], out int step) || step != breakStep)
+                    continue;
+                if (!float.TryParse(p[6], NumberStyles.Float, CultureInfo.InvariantCulture, out float imp))
+                    imp = 0f;
+                if (imp >= maxImpulse)
+                {
+                    maxImpulse = imp;
+                    int.TryParse(p[1], out bestSeg);
+                    bestCollider = p[2];
+                }
+            }
+
+            if (bestSeg < 0)
+                return "throw=" + throwIndex + " H1b step=" + breakStep + " pair=" + breakPair + " contact=none_or_fold";
+            return "throw=" + throwIndex + " H1b step=" + breakStep + " pair=" + breakPair +
+                   " seg=" + bestSeg + " via=" + bestCollider + " impulse~0 dist_contact logged";
         }
 
         static string DescribeContact(uint headMask, uint stickMask, int pair)

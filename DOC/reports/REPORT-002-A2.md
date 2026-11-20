@@ -286,14 +286,69 @@ E1 CSV/summary: `throws_E1_2760704_20261120_223246.csv`, verify `summary_E1_veri
 
 ---
 
-## 10. Открытые пункты / стоп
+## 10. Amendment-9: J (воспроизводимость), K (H1b), L (B6/B7), M (E2)
 
-1. **До A8 (история):** gap_sanity_pass=0 на 0.50@step5, smoke hold 0.25 A10 — overlap при старом спавне.
-2. **E2+** — после E1; текущий привод **MoveRotation** (V1 не принят).
+### J1 — 10 бросков × 2 rep × (1× и 12×)
+Артефакты: `j1_repro.txt`, `throws_J1_2760704_20261120_232220.csv`, `summary_J1_…232220.txt`.
+
+| throw | run-to-run @1× | run-to-run @12× | 1× vs 12× (rep1) |
+|-------|----------------|-----------------|------------------|
+| 11, 18, 53, 95 | идентичны | идентичны | близки (A10 сохраняется) |
+| 15, 27, 57 | max_gap совпадает | max_gap совпадает | A10=0 обе шкалы |
+| 17, 59 | расходятся (A10 / step) | расходятся | **17:** A10 только на 12× rep1; **59:** A10 на 1× rep2 и 12× rep2 |
+| 60 | идентичны | идентичны | step/value слегка различаются @12× |
+
+**Вывод:** при фиксированной `timeScale` два повтора совпадают, кроме **17** и **59** (зафиксировано как находка, без поиска причины). Между 1× и 12× — те же расхождения, что в §9 (60/59/17).
+
+### J2 — шум серий и правило `ScreeningTimeScale`
+`summary_E0b_…224813`, `summary_E0c_…225034`, `j2_timescale_rule.txt`: E0 / E0b / E0c **совпадают** (A10=5, soft=48, max_gap≈0.350).  
+**Правило:** `screening_time_scale=12`, скрининг на 12×, финальные подтверждения на 1×.
+
+### K — H1b (контакты)
+`trace_H1b_*`, `h1_conclusions.txt` (ω в трассе — `DeltaAngle/dt`).
+
+| throw | одна строка |
+|-------|-------------|
+| 11 | step 33, pair 6, **seg6 via stick**, импульс ~0 (distance/touch) |
+| 18 | step 38, pair 6, **seg7 via stick** |
+| 53 | step 33, pair 6, **seg7 via stick** |
+| 60 @1× | step 38, pair 6, **seg7 via stick** (на 12× в этой серии разрыва нет) |
+| 95 | step 33, pair 6, **seg7 via stick** |
+
+Механизм разрыва по-прежнему **не установлен** (контакт со **stick**, не голова; импульсы в логе ≈0).
+
+### L — B6/B7
+Коммит `TASK-002-A2: rest probe (B6/B7)`; `rest_probe_2760704_20261120_224145.csv`.
+
+### M — E2b / E2s @ 12×
+**E2b** (голова off после spawn clearance): `summary_E2b_2760704_20261120_235027.txt` — A10=**5**, soft=**51**, max_gap=**0.350**, r_min min=0.0076 (первый прогон без отложенного off дал 100% spawn_invalid; исправлено `SetHeadOffAfterSpawnClearance`).
+
+| серия | A10 | soft 0.085–0.21 | max_gap | r_min min | A12 (min≥0.35) |
+|-------|-----|------------------|---------|-----------|----------------|
+| E0 (база) | 5 | 48 | 0.350 | 0.00076 | нет |
+| E2b | 5 | 51 | 0.350 | 0.0076 | нет |
+| E2s J65 | 5 | 48 | 0.350 | 0.00076 | нет |
+| E2s J35 | 5 | 47 | 0.290 | 0.080 | нет |
+| E2s J25 | 2 | 52 | 0.218 | 0.390 | **да** |
+| E2s J15 | 0 | 49 | 0.137 | 0.641 | **да** |
+
+Лучший компромисс по ранжированию ТЗ среди сетки: **J25** (2 разрыва, мягкий бин 52). Полная сетка RestoreK × толщина **не запускалась** — в оркестраторе только JointLimit; шаги ×1/×5/×20 и thickness 0.3/0.4 остаются на следующую итерацию архитектора.
+
+`GameConfig.asset` после серий: **diff пуст** (проверено).
+
+**Стоп:** E2s не остановлена по A12 (J25/J15 проходят порог r_min); продолжение подбора параметров — за архитектором.
 
 ---
 
-## 11. Где смотреть сырьё (оператор)
+## 11. Открытые пункты / стоп
+
+1. **До A8 (история):** gap_sanity_pass=0 на 0.50@step5, smoke hold 0.25 A10 — overlap при старом спавне.
+2. **E2 follow-up:** RestoreK / `RibbonColliderThickness` по лучшему JointLimit; GetContacts vs distance/touch в H1b.
+3. Привод **MoveRotation** (V1 не принят).
+
+---
+
+## 12. Где смотреть сырьё (оператор)
 
 | Артефакт | Путь |
 |----------|------|
@@ -305,6 +360,8 @@ E1 CSV/summary: `throws_E1_2760704_20261120_223246.csv`, verify `summary_E1_veri
 | E0 | `throws_E0_*.csv`, `summary_E0_*.txt`, `summary_E0_verify1x_*.txt` |
 | H1 / H3 | `trace_E0_*.csv`, `h1_conclusions.txt`, `e0_correlation.txt`, `summary_E0_verify1x_worst_*.txt` |
 | E1 / A1 | `throws_E1_*.csv`, `summary_E1_*.txt`, `a1_probe.txt` |
+| A9 J/K/M | `j1_repro.txt`, `j2_timescale_rule.txt`, `trace_H1b_*`, `e2_summary_table.txt`, `summary_E2b_…235027.txt`, `summary_E2s_J*.txt` |
+| B6/B7 | `rest_probe_*.csv` |
 | D1 dump | `c0_joint_dump.txt` (большой) |
 
 При следующей вехе этот раздел REPORT обновлять и коммитить вместе с `DOC/reports/REPORT-002-A2.md`.

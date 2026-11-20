@@ -60,6 +60,18 @@ namespace SweetBananas.Editor.SpikeBench
             return outPath;
         }
 
+        public static int CountRLow(string csvPath, float threshold = 0.35f)
+        {
+            int n = 0;
+            foreach (var row in ParseRows(csvPath))
+            {
+                if (row.SpawnInvalid == 0 && !float.IsNaN(row.RMin) && row.RMin < threshold)
+                    n++;
+            }
+
+            return n;
+        }
+
         public static Dictionary<int, (float MaxGap, bool A10)> LoadThrowSummaries(string csvPath)
         {
             var dict = new Dictionary<int, (float, bool)>();

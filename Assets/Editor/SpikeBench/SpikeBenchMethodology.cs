@@ -10,6 +10,7 @@ namespace SweetBananas.Editor.SpikeBench
     {
         public const int DefaultSeed = unchecked((int)0x002A2000);
         public const float BenchTimeScale = 12f;
+        public static float ScreeningTimeScale = BenchTimeScale;
         public const int VerifyAtRealtimeCount = 10;
         public const float TapThrowTimeoutSec = 4f;
         public const float HoldThrowTimeoutSec = 6f;
@@ -76,6 +77,8 @@ namespace SweetBananas.Editor.SpikeBench
             sb.AppendLine("throw_end: tap — release then settle (all segments |v|<0.05 for 0.25s) OR tap_throw_timeout since release; hold — release or hold_throw_timeout since press start; also ends on fail-line (same as SpikeOverlay).");
             sb.AppendLine("gap_bins: 0.085 / 0.21 / 0.5 / 1.0 (A10)");
             sb.AppendLine("csv_path=" + LogDirectory());
+            sb.AppendLine("screening_time_scale=" + ScreeningTimeScale.ToString(CultureInfo.InvariantCulture));
+            sb.AppendLine("stick_angular_rate=DeltaAngle(rot_t,rot_{t-1})/dt (not Body.angularVelocity under MoveRotation)");
             sb.AppendLine();
             sb.Append(HooksDocumentation);
             File.WriteAllText(path, sb.ToString());

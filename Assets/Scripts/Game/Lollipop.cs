@@ -37,6 +37,14 @@ namespace SweetBananas.Game
         public Collider2D StickCollider => _stick;
         public Rigidbody2D Body => _body;
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public void DebugSetHeadColliderEnabled(bool enabled)
+        {
+            if (_head != null)
+                _head.enabled = enabled;
+        }
+#endif
+
         [Inject]
         public void Construct(GameConfig config)
         {

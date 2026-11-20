@@ -119,10 +119,49 @@ namespace SweetBananas.Editor.SpikeBench
         static float _seriesMaxReturnSec;
         static string _worstVerifyMainCsv;
         static Action _beginPlayHook;
+        static bool _headOffAfterSpawnClearance;
+        static readonly List<float> _j1TimeScales = new();
+        static readonly List<int> _j1Reps = new();
+        static readonly StringBuilder _j1Report = new();
 
         public static bool IsRunning => _state != SessionState.Idle;
 
+        public static void StartJ1ReproSeries()
+        {
+            if (_state != SessionState.Idle)
+                return;
+
+            string csv = SpikeBenchE0Analysis.FindLatestE0Csv();
+            var soft = SpikeBenchE0Analysis.PickTopSoftBinThrowIndices(csv ?? "", 5);
+            var indices = new HashSet<int>(SpikeBenchE0Analysis.BreakThrowIndices);
+            foreach (int i in soft)
+                indices.Add(i);
+            var sorted = new List<int>(indices);
+            sorted.Sort();
+
+            var main = SpikeBenchPlanBuilder.BuildSeriesPlans(
+                SpikeBenchMethodology.DefaultSeed,
+                SpikeBenchMethodology.SeriesTaps,
+                SpikeBenchMethodology.SeriesHolds);
+            var plans = new List<BenchThrowPlan>();
+            _j1TimeScales.Clear();
+            _j1Reps.Clear();
+            _j1Report.Clear();
+            foreach (int idx in sorted)
+            {
+                plans.Add(main[idx]); _j1TimeScales.Add(1f); _j1Reps.Add(1);
+                plans.Add(main[idx]); _j1TimeScales.Add(1f); _j1Reps.Add(2);
+                plans.Add(main[idx]); _j1TimeScales.Add(12f); _j1Reps.Add(1);
+                plans.Add(main[idx]); _j1TimeScales.Add(12f); _j1Reps.Add(2);
+            }
+
+            Start("J1", SpikeBenchMethodology.DefaultSeed, 1f, 0, 0, false, null, plans);
+        }
+
         public static void SetBeginPlayHook(Action hook) => _beginPlayHook = hook;
+
+        /// <summary>E2b: keep head collider on for spawn clearance, disable before throw.</summary>
+        public static void SetHeadOffAfterSpawnClearance(bool value) => _headOffAfterSpawnClearance = value;
 
         public static float ScreeningTimeScale => SpikeBenchMethodology.ScreeningTimeScale;
 
@@ -274,6 +313,14 @@ namespace SweetBananas.Editor.SpikeBench
         static void StartThrow(BenchThrowPlan plan)
         {
             _current = plan;
+            if (_experimentId == "J1" && _planIndex < _j1TimeScales.Count)
+            {
+                _timeScale = _j1TimeScales[_planIndex];
+                Time.timeScale = _timeScale;
+            }
+
+            if (_headOffAfterSpawnClearance && _lollipop != null)
+                _lollipop.DebugSetHeadColliderEnabled(true);
             _ribbon.ResetToSpawn(plan.SpawnFraction);
             _throw.DebugResetFixedSteps();
             _spawnFixedStep = _throw.FixedSteps;
@@ -281,6 +328,8 @@ namespace SweetBananas.Editor.SpikeBench
             Physics2D.SyncTransforms();
             _spawnClearanceStep0 = _ribbon.MinSpawnClearanceDistance();
             _currentThrowInvalid = _spawnClearanceStep0 < 0.01f;
+            if (_headOffAfterSpawnClearance && _lollipop != null)
+                _lollipop.DebugSetHeadColliderEnabled(false);
             _spawnAngle = _lollipop != null ? _lollipop.Angle : 0f;
             _hingeSlackMax = _ribbon.MaxHingeSlack();
             _pressElapsed = 0f;
@@ -564,6 +613,16 @@ namespace SweetBananas.Editor.SpikeBench
             else
                 _mainResults.Add(recorded);
 
+            if (_experimentId == "J1" && _planIndex < _j1Reps.Count)
+            {
+                int li = _planIndex;
+                _j1Report.AppendLine(string.Format(CultureInfo.InvariantCulture,
+                    "throw={0} rep={1} time_scale={2:F0} first021_step={3} first021_val={4:F4} max_gap={5:F4} a10={6}",
+                    _current.Index, _j1Reps[li], _j1TimeScales[li],
+                    _firstGap021Step, _firstGap021Step < 0 ? 0f : _firstGap021Value,
+                    _maxGap, a10 ? 1 : 0));
+            }
+
             if (_currentThrowInvalid)
             {
                 _spawnInvalidCount++;
@@ -611,6 +670,8 @@ namespace SweetBananas.Editor.SpikeBench
         static void CompleteSeries()
         {
             WriteSummary();
+            if (_experimentId == "J1")
+                WriteJ1ReproFile();
             _state = SessionState.Done;
             Debug.Log("SpikeBench: series complete. Logs in " + SpikeBenchMethodology.LogDirectory());
 
@@ -743,6 +804,15 @@ namespace SweetBananas.Editor.SpikeBench
             sb.AppendLine("worst_verify_a10_matches=" + a10Match);
         }
 
+        static void WriteJ1ReproFile()
+        {
+            string path = Path.Combine(SpikeBenchMethodology.LogDirectory(), "j1_repro.txt");
+            var sb = new StringBuilder();
+            sb.AppendLine("J1 reproducibility batch (one play session)");
+            sb.Append(_j1Report);
+            File.WriteAllText(path, sb.ToString());
+        }
+
         static void AppendHistogram(StringBuilder sb, string prefix, int[] hist)
         {
             sb.AppendLine(prefix + "_0_0.085=" + hist[0]);
@@ -822,6 +892,7 @@ namespace SweetBananas.Editor.SpikeBench
             }
 
             _beginPlayHook = null;
+            _headOffAfterSpawnClearance = false;
             if (_overlay != null)
                 _overlay.AutoResetEnabled = true;
 

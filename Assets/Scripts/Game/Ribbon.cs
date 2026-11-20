@@ -19,6 +19,13 @@ namespace SweetBananas.Game
         bool _built;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
+        GameConfig _benchConfigOverride;
+        GameConfig ActiveConfig => _benchConfigOverride != null ? _benchConfigOverride : _config;
+#else
+        GameConfig ActiveConfig => _config;
+#endif
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public float LastBuildSlack { get; private set; }
         public float LastSpawnLift { get; private set; }
 #endif
@@ -65,7 +72,7 @@ namespace SweetBananas.Game
                 Build();
             if (_throw != null)
                 _throw.SnapRest();
-            PlaceAlongStick(fraction ?? _config.RibbonSpawnFraction);
+            PlaceAlongStick(fraction ?? ActiveConfig.RibbonSpawnFraction);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             ValidateHingeAnchors();
 #endif
@@ -128,8 +135,8 @@ namespace SweetBananas.Game
             if (!_built)
                 return;
 
-            float k = _config.RestoreK;
-            float c = _config.RestoreC;
+            float k = ActiveConfig.RestoreK;
+            float c = ActiveConfig.RestoreC;
             for (int i = 0; i < _joints.Count; i++)
             {
                 HingeJoint2D joint = _joints[i];
@@ -148,19 +155,19 @@ namespace SweetBananas.Game
 
         void Build()
         {
-            if (_built || _config == null)
+            if (_built || ActiveConfig == null)
                 return;
 
             ClearSegments();
-            int count = Mathf.Max(2, _config.SegmentCount);
+            int count = Mathf.Max(2, ActiveConfig.SegmentCount);
             float ribbonLength = RibbonMesh.OpaqueLengthUnits;
             _segmentLength = ribbonLength / count;
-            float thickness = _config.RibbonColliderThickness;
+            float thickness = ActiveConfig.RibbonColliderThickness;
 
             if (_material == null)
                 _material = new PhysicsMaterial2D("Ribbon");
-            _material.friction = _config.RibbonFriction;
-            _material.bounciness = _config.RibbonBounciness;
+            _material.friction = ActiveConfig.RibbonFriction;
+            _material.bounciness = ActiveConfig.RibbonBounciness;
 
             for (int i = 0; i < count; i++)
             {
@@ -168,11 +175,11 @@ namespace SweetBananas.Game
                 go.transform.SetParent(transform, false);
                 var body = go.AddComponent<Rigidbody2D>();
                 body.bodyType = RigidbodyType2D.Dynamic;
-                body.mass = _config.SegmentMass;
+                body.mass = ActiveConfig.SegmentMass;
                 body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
                 body.interpolation = RigidbodyInterpolation2D.Interpolate;
-                body.linearDamping = _config.RibbonLinearDamping;
-                body.angularDamping = _config.RibbonAngularDamping;
+                body.linearDamping = ActiveConfig.RibbonLinearDamping;
+                body.angularDamping = ActiveConfig.RibbonAngularDamping;
                 body.gravityScale = 1f;
                 body.sleepMode = RigidbodySleepMode2D.NeverSleep;
                 body.position = transform.TransformPoint(new Vector3(i * _segmentLength, 0f, 0f));
@@ -197,8 +204,8 @@ namespace SweetBananas.Game
                 joint.useLimits = true;
                 joint.limits = new JointAngleLimits2D
                 {
-                    min = -_config.JointLimitDeg,
-                    max = _config.JointLimitDeg
+                    min = -ActiveConfig.JointLimitDeg,
+                    max = ActiveConfig.JointLimitDeg
                 };
                 joint.enableCollision = false;
                 _joints.Add(joint);
@@ -281,6 +288,16 @@ namespace SweetBananas.Game
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         public float MinSpawnClearanceDistance() => MinLollipopClearanceDistance();
+
+        public void DebugSetConfigOverride(GameConfig config) => _benchConfigOverride = config;
+
+        public void DebugRebuild()
+        {
+            _built = false;
+            ClearSegments();
+            Build();
+            ResetToSpawn();
+        }
 #endif
 
         void PlaceStraight(Vector2 center, float angleDeg)

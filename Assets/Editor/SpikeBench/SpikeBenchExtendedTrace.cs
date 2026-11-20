@@ -10,6 +10,8 @@ namespace SweetBananas.Editor.SpikeBench
     {
         readonly StreamWriter _writer;
         bool _headerWritten;
+        float _prevStickAngle = float.NaN;
+        bool _hasPrevStickAngle;
 
         public SpikeBenchExtendedTrace(string fileName)
         {
@@ -37,7 +39,15 @@ namespace SweetBananas.Editor.SpikeBench
             float speed6 = SegmentSpeed(ribbon, 6);
             float speed7 = SegmentSpeed(ribbon, 7);
             float stickAngle = lollipop != null ? lollipop.Angle : 0f;
-            float stickOmega = lollipop != null ? lollipop.MeasuredAngularVelocityDegPerSec : 0f;
+            float stickOmega = 0f;
+            if (lollipop != null)
+            {
+                float stickAngleNow = lollipop.Angle;
+                if (_hasPrevStickAngle)
+                    stickOmega = Mathf.DeltaAngle(_prevStickAngle, stickAngleNow) / Time.fixedDeltaTime;
+                _prevStickAngle = stickAngleNow;
+                _hasPrevStickAngle = true;
+            }
             uint headMask = ContactMask(ribbon, lollipop, true);
             uint stickMask = ContactMask(ribbon, lollipop, false);
             Seg7Local(lollipop, ribbon, out float localX, out float localY);
