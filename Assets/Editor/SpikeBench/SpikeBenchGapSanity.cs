@@ -12,7 +12,7 @@ namespace SweetBananas.Editor.SpikeBench
     public static class SpikeBenchGapSanity
     {
         public static readonly float[] GapFractions = { 0.05f, 0.25f, 0.5f, 0.9f };
-        static readonly int[] StepMarks = { 1, 5, 20, 120 };
+        static readonly int[] StepMarks = { 1, 2, 3, 4, 5, 20, 120 };
 
         public const float ResetSlackLimit = 0.001f;
         public const float StepSlackLimit = 0.02f;
@@ -37,17 +37,20 @@ namespace SweetBananas.Editor.SpikeBench
         static bool _failed;
         static bool _exitPlayWhenDone;
         static Action<bool> _onComplete;
+        static string _logFileName = "gap_sanity.txt";
 
         public static bool IsRunning => _phase == Phase.Running || _phase == Phase.WaitRest;
 
         [MenuItem("Sweet Bananas/SpikeBench/Run Gap Sanity")]
         public static void RunMenu()
         {
+            _logFileName = "gap_sanity.txt";
             StartStandalone();
         }
 
         public static void StartInSession(ThrowController throwCtl, Ribbon ribbon, Action<bool> onComplete)
         {
+            _logFileName = "gap_sanity.txt";
             Begin(throwCtl, ribbon, exitPlayWhenDone: false, onComplete);
         }
 
@@ -123,7 +126,10 @@ namespace SweetBananas.Editor.SpikeBench
                 return;
 
             _fractionIndex = 0;
+            _log.AppendLine("criteria=reset<=0.001; steps_5_20_120_and_rest<=0.02; steps_1_4_info_only");
             _log.AppendLine("last_build_slack=" + _ribbon.LastBuildSlack.ToString(CultureInfo.InvariantCulture));
+            if (_ribbon.LastBuildSlack > ResetSlackLimit)
+                _failed = true;
             StartFraction();
         }
 
@@ -165,10 +171,12 @@ namespace SweetBananas.Editor.SpikeBench
                 return;
 
             float stepSlack = _ribbon.ValidateHingeAnchors();
+            bool infoOnly = target < 5;
+            string tag = infoOnly ? "info" : "pass";
             _log.AppendLine(string.Format(CultureInfo.InvariantCulture,
-                "fraction={0:F2} step={1} hinge_slack={2}",
-                GapFractions[_fractionIndex], target, stepSlack));
-            if (stepSlack > StepSlackLimit)
+                "fraction={0:F2} step={1} tag={2} hinge_slack={3}",
+                GapFractions[_fractionIndex], target, tag, stepSlack));
+            if (!infoOnly && stepSlack > StepSlackLimit)
                 _failed = true;
 
             _stepMarkIndex++;
@@ -198,7 +206,7 @@ namespace SweetBananas.Editor.SpikeBench
         {
             _phase = Phase.Done;
             _log.AppendLine("gap_sanity_pass=" + (passed ? "1" : "0"));
-            File.WriteAllText(Path.Combine(SpikeBenchMethodology.LogDirectory(), "gap_sanity.txt"), _log.ToString());
+            File.WriteAllText(Path.Combine(SpikeBenchMethodology.LogDirectory(), _logFileName), _log.ToString());
             EditorApplication.update -= Tick;
             var cb = _onComplete;
             _onComplete = null;
@@ -208,8 +216,11 @@ namespace SweetBananas.Editor.SpikeBench
 
             cb?.Invoke(passed);
             _phase = Phase.Idle;
-            _throw = null;
-            _ribbon = null;
+            if (_exitPlayWhenDone)
+            {
+                _throw = null;
+                _ribbon = null;
+            }
         }
     }
 }

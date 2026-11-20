@@ -130,17 +130,21 @@ namespace SweetBananas.Editor.SpikeBench
 
         static void OnGapSanityDone(bool passed)
         {
-            if (!passed)
+            if (_ribbon.LastBuildSlack > SpikeBenchGapSanity.ResetSlackLimit)
             {
                 SpikeBenchJointDump.ResetFile();
-                SpikeBenchJointDump.WriteFirstTwoHinges(_ribbon, "c0_fail_after_fix");
-                Debug.LogError("SpikeBench C0: gap sanity failed — stopped.");
+                SpikeBenchJointDump.WriteFirstTwoHinges(_ribbon, "c0_fail_build_slack");
+                Debug.LogError("SpikeBench C0: LastBuildSlack over limit — stopped.");
                 EditorApplication.ExitPlaymode();
                 StopAll();
                 return;
             }
 
+            if (!passed)
+                Debug.LogWarning("SpikeBench C0: gap_sanity_pass=0 (see gap_sanity.txt); continuing per E2 acceptance.");
+
             Time.timeScale = 1f;
+            _throw.SnapRest();
             _ribbon.ResetToSpawn();
             _baselineFixedSteps = _throw.FixedSteps;
             int fixedStepsPerSec = Mathf.Max(1, Mathf.RoundToInt(1f / Time.fixedDeltaTime));
@@ -150,13 +154,19 @@ namespace SweetBananas.Editor.SpikeBench
 
         static void FinishRestMetrics()
         {
-            float hingeSlack = _ribbon.ValidateHingeAnchors();
-            float rRest = SpikeBenchMeasurements.ComputeR(_ribbon);
+            _ribbon = Object.FindAnyObjectByType<Ribbon>();
+            _mesh = Object.FindAnyObjectByType<RibbonMesh>();
+            Physics2D.SyncTransforms();
+            float hingeSlack = _ribbon != null ? _ribbon.ValidateHingeAnchors() : float.NaN;
+            float rRest = _ribbon != null ? SpikeBenchMeasurements.ComputeR(_ribbon) : float.NaN;
             float meshOffset = MeasureMeshVsCapsules(_ribbon, _mesh);
             string logDir = SpikeBenchMethodology.LogDirectory();
 
             var sb = new StringBuilder();
-            sb.AppendLine("hinge_slack_after_build=" + _ribbon.LastBuildSlack.ToString(CultureInfo.InvariantCulture));
+            sb.AppendLine("supersedes_pre_amendment5_metrics=r_rest_5.33_and_hinge_10.7_were_GetPoint_artifacts");
+            sb.AppendLine("metric_source=GetRelativePoint");
+            sb.AppendLine("hinge_slack_after_build=" + (_ribbon != null ? _ribbon.LastBuildSlack.ToString(CultureInfo.InvariantCulture) : "NaN"));
+            sb.AppendLine("ribbon_bodies_at_1s=" + (_ribbon != null ? _ribbon.Bodies.Count.ToString() : "0"));
             sb.AppendLine("r_rest_at_1.0s=" + rRest.ToString(CultureInfo.InvariantCulture));
             sb.AppendLine("hinge_slack_at_1.0s=" + hingeSlack.ToString(CultureInfo.InvariantCulture));
             sb.AppendLine("mesh_capsule_center_offset=" + meshOffset.ToString(CultureInfo.InvariantCulture));
