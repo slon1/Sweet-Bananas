@@ -16,6 +16,12 @@ namespace SweetBananas.Editor.SpikeBench
             Debug.Log("SpikeBench step 0: methodology written to " + SpikeBenchMethodology.LogDirectory());
         }
 
+        [MenuItem("Sweet Bananas/SpikeBench/Run FINAL_J25 (300+60 @12× + verify)")]
+        public static void RunFinal() => SpikeBenchAcceptanceOrchestrator.RunFinalOnly();
+
+        [MenuItem("Sweet Bananas/SpikeBench/A21 — Run acceptance (FINAL → Rest → D24)")]
+        public static void RunAcceptance() => SpikeBenchAcceptanceOrchestrator.RunAll();
+
         [MenuItem("Sweet Bananas/SpikeBench/Run E0 (100+20 @ timeScale 12)")]
         public static void RunE0()
         {
@@ -131,6 +137,10 @@ namespace SweetBananas.Editor.SpikeBench
                         SpikeBenchA1Probe.Stop();
                     if (SpikeBenchRestProbe.IsRunning)
                         SpikeBenchRestProbe.Stop();
+                    if (SpikeBenchLeverRunner.IsRunning)
+                        SpikeBenchLeverRunner.StopRun();
+                    if (SpikeBenchCatchRunner.IsRunning)
+                        SpikeBenchCatchRunner.StopRun();
                 }
             };
         }

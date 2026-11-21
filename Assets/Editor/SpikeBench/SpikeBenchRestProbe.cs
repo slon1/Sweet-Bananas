@@ -212,9 +212,35 @@ namespace SweetBananas.Editor.SpikeBench
 
         static void Complete()
         {
+            string csvPath = Path.Combine(SpikeBenchMethodology.LogDirectory(),
+                $"rest_probe_{SpikeBenchMethodology.DefaultSeed}_{_runId}.csv");
+            _csv?.Flush();
+            _csv?.Dispose();
+            _csv = null;
+            WriteSummaryTable(csvPath);
             Debug.Log("SpikeBench Rest Probe complete.");
             Stop();
             EditorApplication.ExitPlaymode();
+        }
+
+        static void WriteSummaryTable(string csvPath)
+        {
+            if (!File.Exists(csvPath))
+                return;
+            var sb = new StringBuilder();
+            sb.AppendLine("fraction\ttip_reach_s\tr_rest@1s\tslide_v_1s\tslide_v_2s");
+            foreach (string line in File.ReadAllLines(csvPath))
+            {
+                if (line.StartsWith("experiment", StringComparison.Ordinal))
+                    continue;
+                string[] p = line.Split(',');
+                if (p.Length < 10)
+                    continue;
+                sb.AppendLine(string.Join("\t", p[4], p[6], p[5], p[8], p[9]));
+            }
+
+            string outPath = Path.Combine(SpikeBenchMethodology.LogDirectory(), "rest_probe_table_J25.txt");
+            File.WriteAllText(outPath, sb.ToString());
         }
 
         static void Tick()

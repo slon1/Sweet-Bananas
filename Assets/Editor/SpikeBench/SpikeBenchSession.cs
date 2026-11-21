@@ -6,6 +6,7 @@ using System.Text;
 using SweetBananas.Data;
 using SweetBananas.Game;
 using SweetBananas.Game.Debug;
+using Unity.Profiling;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -96,6 +97,17 @@ namespace SweetBananas.Editor.SpikeBench
         static int _spawnFixedStepsAtClearance;
         static float _hingeSlackMax;
         static int _spawnInvalidCount;
+        static int _nanThrowCount;
+        static float _gapStoppedMax;
+        static bool _hadStoppedPhase;
+        static SpikeBenchTunnelTracker _tunnelTracker;
+        static int _throwTunnelViolations;
+        static ProfilerRecorder _physicsRecorder;
+        static bool _physicsRecorderValid;
+        static double _physicsStepNsSum;
+        static int _physicsStepSamples;
+        static long _meshAllocMax;
+        static RibbonMesh _ribbonMesh;
         static readonly List<float> _rMinValid = new();
         static readonly List<string> _firstGap021Events = new();
 
@@ -162,6 +174,17 @@ namespace SweetBananas.Editor.SpikeBench
 
         /// <summary>E2b: keep head collider on for spawn clearance, disable before throw.</summary>
         public static void SetHeadOffAfterSpawnClearance(bool value) => _headOffAfterSpawnClearance = value;
+
+        public static void StartFinalJ25()
+        {
+            if (_state != SessionState.Idle)
+                return;
+            Start("FINAL_J25", SpikeBenchMethodology.DefaultSeed,
+                SpikeBenchMethodology.ScreeningTimeScale,
+                SpikeBenchMethodology.FinalTaps,
+                SpikeBenchMethodology.FinalHolds,
+                verifyRealtime: true);
+        }
 
         public static float ScreeningTimeScale => SpikeBenchMethodology.ScreeningTimeScale;
 
@@ -278,9 +301,33 @@ namespace SweetBananas.Editor.SpikeBench
                 _lollipop.DebugSetDriveMode(_benchDriveMode ?? LollipopDriveMode.MoveRotation);
             }
 
+            _throw.DebugSetConfigOverride(null);
+            _ribbon.DebugSetConfigOverride(null);
             _throw.DebugSetDrive(true);
             _throw.DebugFixedStep += OnDebugFixedStep;
             _beginPlayHook?.Invoke();
+
+            if (_experimentId == "FINAL_J25" && !_isVerifyRun)
+            {
+                _tunnelTracker = new SpikeBenchTunnelTracker();
+                if (_physicsRecorder.Valid)
+                    _physicsRecorder.Dispose();
+                _physicsRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Physics, "Physics2D.Simulate");
+                _physicsRecorderValid = _physicsRecorder.Valid;
+                if (!_physicsRecorderValid)
+                {
+                    _physicsRecorder.Dispose();
+                    _physicsRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Physics,
+                        "FixedUpdate.Physics2DFixedUpdate");
+                    _physicsRecorderValid = _physicsRecorder.Valid;
+                }
+
+                _physicsStepNsSum = 0;
+                _physicsStepSamples = 0;
+                _meshAllocMax = 0;
+            }
+
+            _ribbonMesh = UnityEngine.Object.FindAnyObjectByType<RibbonMesh>();
 
             string csvExperiment = _isVerifyRun ? _experimentId + "_verify1x" : _experimentId;
             _csv = new SpikeBenchCsv(csvExperiment, _seed, _runId);
@@ -293,6 +340,7 @@ namespace SweetBananas.Editor.SpikeBench
             Array.Clear(_histStopped, 0, _histStopped.Length);
             _seriesMaxGap = 0f;
             _spawnInvalidCount = 0;
+            _nanThrowCount = 0;
             _rMinValid.Clear();
             _firstGap021Events.Clear();
             StartThrow(_plans[_planIndex]);
@@ -348,6 +396,11 @@ namespace SweetBananas.Editor.SpikeBench
             _firstGap021Step = -1;
             _throwPhysicsStep = 0;
             _rMinPhaseAtMin = "";
+            _gapStoppedMax = 0f;
+            _hadStoppedPhase = false;
+            _throwTunnelViolations = 0;
+            if (_tunnelTracker != null && !_isVerifyRun)
+                _tunnelTracker.BeginThrow(plan.Index);
             _throw.DebugResetDriveMetrics();
             if (plan.Index == 0)
             {
@@ -415,6 +468,11 @@ namespace SweetBananas.Editor.SpikeBench
             else
                 _phase = SpikeGapPhase.Flight;
 
+            if (_phase == SpikeGapPhase.Stopped)
+            {
+                _hadStoppedPhase = true;
+            }
+
             float maxPair = 0f;
             int worstPair = 0;
             SpikeBenchMeasurements.FillPairGaps(_ribbon, _pairGapsBuf, ref maxPair);
@@ -422,6 +480,21 @@ namespace SweetBananas.Editor.SpikeBench
             {
                 if (_pairGapsBuf[p] > _pairGapsBuf[worstPair])
                     worstPair = p;
+            }
+
+            if (_phase == SpikeGapPhase.Stopped && !_currentThrowInvalid)
+                _gapStoppedMax = Mathf.Max(_gapStoppedMax, maxPair);
+
+            if (_tunnelTracker != null && !_isVerifyRun && !_currentThrowInvalid)
+                _throwTunnelViolations += _tunnelTracker.SampleStep(_lollipop, _ribbon);
+
+            if (_ribbonMesh != null && _experimentId == "FINAL_J25")
+                _meshAllocMax = System.Math.Max(_meshAllocMax, _ribbonMesh.LastAllocBytes);
+
+            if (_isVerifyRun && _experimentId == "FINAL_J25" && _physicsRecorderValid && _physicsRecorder.Valid)
+            {
+                _physicsStepNsSum += _physicsRecorder.LastValue;
+                _physicsStepSamples++;
             }
 
             string phaseName = _phase switch
@@ -598,7 +671,17 @@ namespace SweetBananas.Editor.SpikeBench
                 _spawnFixedStepsAtClearance,
                 _hingeSlackMax,
                 _currentThrowInvalid ? "" : _rMinPhaseAtMin,
-                _throw != null ? _throw.FixedSteps - _spawnFixedStep : -1);
+                _throw != null ? _throw.FixedSteps - _spawnFixedStep : -1,
+                float.NaN,
+                float.NaN,
+                _hadStoppedPhase ? _gapStoppedMax : float.NaN,
+                _naN ? 1 : 0);
+
+            if (_tunnelTracker != null && !_isVerifyRun)
+                _tunnelTracker.EndThrow(_current.Index, _throwTunnelViolations);
+
+            if (_naN && !_currentThrowInvalid)
+                _nanThrowCount++;
 
             if (!_currentThrowInvalid && _throw != null)
             {
@@ -675,7 +758,7 @@ namespace SweetBananas.Editor.SpikeBench
             _state = SessionState.Done;
             Debug.Log("SpikeBench: series complete. Logs in " + SpikeBenchMethodology.LogDirectory());
 
-            if (!_isVerifyRun && _planIndex > 0)
+            if (!_isVerifyRun && _planIndex > 0 && _experimentId == "E0")
             {
                 float invalidPct = 100f * _spawnInvalidCount / _planIndex;
                 if (_spawnInvalidCount * 100f > _planIndex * 2f)
@@ -689,6 +772,9 @@ namespace SweetBananas.Editor.SpikeBench
                     return;
                 }
             }
+
+            if (_experimentId == "FINAL_J25" && !_isVerifyRun && _tunnelTracker != null)
+                _tunnelTracker.Flush(_experimentId, _seed, _runId);
 
             if (_verifyRealtime && _timeScale > 1.01f && !_isVerifyRun)
             {
@@ -718,6 +804,9 @@ namespace SweetBananas.Editor.SpikeBench
                 return;
             }
 
+            if (_experimentId == "FINAL_J25" && _isVerifyRun)
+                SpikeBenchD24Performance.Flush(_physicsStepNsSum, _physicsStepSamples, _meshAllocMax);
+
             TearDown();
             EditorApplication.ExitPlaymode();
         }
@@ -737,6 +826,7 @@ namespace SweetBananas.Editor.SpikeBench
             float invalidPct = throwsDone > 0 ? 100f * _spawnInvalidCount / throwsDone : 0f;
             sb.AppendLine("spawn_invalid_pct=" + invalidPct.ToString(CultureInfo.InvariantCulture));
             sb.AppendLine("valid_throws=" + (throwsDone - _spawnInvalidCount));
+            sb.AppendLine("nan_throws_valid=" + _nanThrowCount);
             sb.AppendLine("a10_breaks_gt_0.21_valid=" + _totalBreaks);
             sb.AppendLine("bin_0.085_0.21_valid=" + _bin085to21);
             sb.AppendLine("max_gap_valid=" + _seriesMaxGap.ToString(CultureInfo.InvariantCulture));
@@ -763,6 +853,8 @@ namespace SweetBananas.Editor.SpikeBench
             int validThrows = throwsDone - _spawnInvalidCount;
             int softLimit = validThrows > 0 ? Mathf.FloorToInt(validThrows * 0.05f) : 0;
             sb.AppendLine("a10_soft_bin_limit_valid=" + softLimit);
+            int break2Pct = validThrows > 0 ? Mathf.FloorToInt(validThrows * 0.02f) : 0;
+            sb.AppendLine("a10_break_limit_2pct_valid=" + break2Pct);
 
             if (_experimentId.StartsWith("E1", StringComparison.Ordinal))
             {
@@ -893,6 +985,10 @@ namespace SweetBananas.Editor.SpikeBench
 
             _beginPlayHook = null;
             _headOffAfterSpawnClearance = false;
+            _tunnelTracker = null;
+            if (_physicsRecorder.Valid)
+                _physicsRecorder.Dispose();
+            _ribbonMesh = null;
             if (_overlay != null)
                 _overlay.AutoResetEnabled = true;
 

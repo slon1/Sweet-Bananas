@@ -340,15 +340,77 @@ E1 CSV/summary: `throws_E1_2760704_20261120_223246.csv`, verify `summary_E1_veri
 
 ---
 
-## 11. Открытые пункты / стоп
+## 11. Amendment-10 / 10a: FINAL_J25, A21, D24 (принятие)
 
-1. **До A8 (история):** gap_sanity_pass=0 на 0.50@step5, smoke hold 0.25 A10 — overlap при старом спавне.
-2. **E2 follow-up:** RestoreK / `RibbonColliderThickness` по лучшему JointLimit; GetContacts vs distance/touch в H1b.
-3. Привод **MoveRotation** (V1 не принят).
+### 1. Итоговый `GameConfig`
+| Поле | Было | Стало |
+|------|------|-------|
+| `JointLimitDeg` | 65 | **25** |
+
+Новая сессия Play, `Ribbon.Build()` в `Start()`; override E2 не использовался.
+
+### 2. Серия FINAL_J25 (2.1)
+Источник: `summary_FINAL_J25_2760704_20261121_002403.txt`, `throws_…002403.csv`, `tunnel_FINAL_J25.txt`.
+
+| Метрика | Значение |
+|---------|----------|
+| throws | 360 (300 tap + 60 hold) @ 12× |
+| valid / spawn_invalid | 360 / 0 (0%) |
+| A10 breaks (>0.21) | **7** (лимит 2% = 7) |
+| soft bin 0.085–0.21 | 151 |
+| max_gap | 0.221 |
+| r_min min / median | **0.275** / 0.854 |
+| tunnel violations | 0 |
+| verify 1× (10 бросков) | A10=0, max_gap≈0.124 |
+
+Разрывы по индексам: **17, 59** и кратные +84 в сетке (pair 4, contact). Сравнение с E2s_J25 (120 бросков): там 2 разрыва, soft=52; на 360 бросков 7 разрывов — ожидаемое масштабирование сетки.
+
+### 3. Таблица A21 (`a21_verdict.txt`)
+| Пункт | Вердикт |
+|-------|---------|
+| 1 NaN, speed | pass |
+| 2 stopped gap ≤0.05 | pass |
+| 3 breaks ≤2% | **pass** (7/7) |
+| 4 R_min ≥0.35 каждый бросок | **FAIL** (1 бросок &lt; 0.35) |
+| 5 spawn_invalid | pass |
+| D24.2 tunnel | pass |
+| D24.9 rest / slide | **FAIL** (tip not 2.5–4 s на части долей; |v₁s| до 3.46 @ 0.7) |
+| D24.3 lever Δ≥2 | pass (17.14) |
+| D24.4 catch 5/5 | pass |
+| D24.7 physics / mesh | pass |
+
+**Критерии закрытия 002-A2 не выполнены** (жёсткий п.4; D24.9 вне нормы). Подбор параметров не проводился.
+
+### 4. D24 артефакты
+- Rest: `rest_probe_2760704_20261121_002547.csv`, `rest_probe_table_J25.txt`
+- Lever: `d24_3_lever.txt`
+- Catch: `d24_4_catch.txt`
+- Perf: `d24_7_profile.txt` (Physics2D.Simulate ≈ 0.076 ms/step на verify @1×; mesh alloc max 0)
+
+### 5. Кадры Game view
+`DOC/reports/img/REPORT-002-A2/rest.png`, `flight.png`, `stopped.png` (временно сняты с C0 до отдельного прогона 1080×2160 на J25).
+
+### 6. `git diff --stat` (на момент прогона)
+Ожидается: `GameConfig.asset` (1 строка), `Assets/Editor/SpikeBench/*`, `DOC/reports/…`.
+
+### 7. Консоль
+FINAL: без abort spawn. Rest probe: исправлен `IOException` при `WriteSummaryTable` (закрытие CSV до чтения). Предупреждения UI `IsPointerOverGameObject` — как ранее.
+
+### 8. Открытые вопросы
+1. Решение архитектора: r_min &lt; 0.35 на одном из 360 бросков при J25 — принимать ли конфиг или менять политику A12?
+2. D24.9: время до кончика не везде попадает в 2.5–4 s; нужен ли подбор `StickFriction` (отменённый E2f) или уточнение метрики?
+3. Заменить кадры на снимки с `JointLimitDeg=25` @ 1080×2160?
 
 ---
 
-## 12. Где смотреть сырьё (оператор)
+## 12. Открытые пункты / стоп (история)
+
+1. **До A8:** gap_sanity_pass=0 на 0.50@step5.
+2. Привод **MoveRotation**; 002-A2 **не закрыт** до вердикта по §11.
+
+---
+
+## 13. Где смотреть сырьё (оператор)
 
 | Артефакт | Путь |
 |----------|------|
@@ -361,6 +423,7 @@ E1 CSV/summary: `throws_E1_2760704_20261120_223246.csv`, verify `summary_E1_veri
 | H1 / H3 | `trace_E0_*.csv`, `h1_conclusions.txt`, `e0_correlation.txt`, `summary_E0_verify1x_worst_*.txt` |
 | E1 / A1 | `throws_E1_*.csv`, `summary_E1_*.txt`, `a1_probe.txt` |
 | A9 J/K/M | `j1_repro.txt`, `j2_timescale_rule.txt`, `trace_H1b_*`, `e2_summary_table.txt`, `summary_E2b_…235027.txt`, `summary_E2s_J*.txt` |
+| A10 FINAL | `throws_FINAL_J25_*.csv`, `summary_FINAL_J25_*`, `tunnel_FINAL_J25.txt`, `a21_verdict.txt`, `d24_*`, `rest_probe_table_J25.txt` |
 | B6/B7 | `rest_probe_*.csv` |
 | D1 dump | `c0_joint_dump.txt` (большой) |
 

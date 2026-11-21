@@ -27,7 +27,7 @@ MonoBehaviour:
   PositionIterations: 12
   SegmentCount: 8
   SegmentMass: 0.2
-  JointLimitDeg: 65
+  JointLimitDeg: 25
   RestoreK: 2
   RestoreC: 0.2
   RibbonFriction: 0.9
