@@ -77,6 +77,7 @@ namespace SweetBananas.Editor.SpikeBench
         static SpikeGapPhase _phase = SpikeGapPhase.Unknown;
         static float _maxSpeed;
         static float _rMin = float.PositiveInfinity;
+        static float _rStoppedMin = float.PositiveInfinity;
         static bool _naN;
         static float _heldSeconds;
         static float _findSceneStart;
@@ -193,6 +194,19 @@ namespace SweetBananas.Editor.SpikeBench
             Start("E1", SpikeBenchMethodology.DefaultSeed, SpikeBenchMethodology.BenchTimeScale,
                 SpikeBenchMethodology.SeriesTaps, SpikeBenchMethodology.SeriesHolds, verifyRealtime: true,
                 LollipopDriveMode.AngularVelocity, null);
+        }
+
+        public static void StartB242D24Repeat()
+        {
+            if (_state != SessionState.Idle)
+                return;
+            SetBeginPlayHook(() =>
+            {
+                LevelRules rules = UnityEngine.Object.FindAnyObjectByType<LevelRules>();
+                rules?.DebugSetEnabled(false);
+            });
+            Start("B24_1", SpikeBenchMethodology.DefaultSeed, SpikeBenchMethodology.BenchTimeScale,
+                SpikeBenchMethodology.SeriesTaps, SpikeBenchMethodology.SeriesHolds, verifyRealtime: false);
         }
 
         public static void StartVerifyWorst(string mainE0CsvPath)
@@ -398,6 +412,7 @@ namespace SweetBananas.Editor.SpikeBench
             _rMinPhaseAtMin = "";
             _gapStoppedMax = 0f;
             _hadStoppedPhase = false;
+            _rStoppedMin = float.PositiveInfinity;
             _throwTunnelViolations = 0;
             if (_tunnelTracker != null && !_isVerifyRun)
                 _tunnelTracker.BeginThrow(plan.Index);
@@ -471,6 +486,12 @@ namespace SweetBananas.Editor.SpikeBench
             if (_phase == SpikeGapPhase.Stopped)
             {
                 _hadStoppedPhase = true;
+                if (!_currentThrowInvalid)
+                {
+                    float rStop = SpikeBenchMeasurements.ComputeR(_ribbon);
+                    if (!float.IsNaN(rStop))
+                        _rStoppedMin = Mathf.Min(_rStoppedMin, rStop);
+                }
             }
 
             float maxPair = 0f;
@@ -630,6 +651,8 @@ namespace SweetBananas.Editor.SpikeBench
         {
             if (_rMin == float.PositiveInfinity)
                 _rMin = float.NaN;
+            if (_rStoppedMin == float.PositiveInfinity)
+                _rStoppedMin = float.NaN;
 
             bool a10 = !_currentThrowInvalid && _firstGap021Step >= 0;
             string phaseName = _gapPhaseAtMax switch
@@ -675,7 +698,8 @@ namespace SweetBananas.Editor.SpikeBench
                 float.NaN,
                 float.NaN,
                 _hadStoppedPhase ? _gapStoppedMax : float.NaN,
-                _naN ? 1 : 0);
+                _naN ? 1 : 0,
+                _currentThrowInvalid ? float.NaN : _rStoppedMin);
 
             if (_tunnelTracker != null && !_isVerifyRun)
                 _tunnelTracker.EndThrow(_current.Index, _throwTunnelViolations);

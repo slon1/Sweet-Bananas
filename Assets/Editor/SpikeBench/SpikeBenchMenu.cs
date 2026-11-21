@@ -67,6 +67,22 @@ namespace SweetBananas.Editor.SpikeBench
         [MenuItem("Sweet Bananas/SpikeBench/Run Rest Probe (B6)")]
         public static void RunRestProbe() => SpikeBenchRestProbe.RunFromMenu();
 
+        [MenuItem("Sweet Bananas/SpikeBench/B24.1 — D24.1 repeat (12×, rules off)")]
+        public static void RunB241() => SpikeBenchSession.StartB242D24Repeat();
+
+        [MenuItem("Sweet Bananas/SpikeBench/B — StickFriction grid")]
+        public static void RunStickFrictionGrid()
+        {
+            SpikeBenchStickFrictionPicker.RunGrid((value, table) =>
+            {
+                Debug.Log("StickFriction selected: " + value);
+                Debug.Log(table);
+            });
+        }
+
+        [MenuItem("Sweet Bananas/SpikeBench/B — Level1 playability grid (12×)")]
+        public static void RunLevel1Grid() => SpikeBenchLevel1Playability.Run();
+
         [MenuItem("Sweet Bananas/SpikeBench/J1 — reproducibility (10×2×2)")]
         public static void RunJ1() => SpikeBenchJ1Repro.RunFromMenu();
 

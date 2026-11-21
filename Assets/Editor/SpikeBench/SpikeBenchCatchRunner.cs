@@ -46,6 +46,7 @@ namespace SweetBananas.Editor.SpikeBench
             _passCount = 0;
             _log.Clear();
             _state = Phase.WaitScene;
+            _findStart = (float)EditorApplication.timeSinceStartup;
             EditorApplication.update += Tick;
             if (!Application.isPlaying)
             {
@@ -53,7 +54,6 @@ namespace SweetBananas.Editor.SpikeBench
                 if (scene != null)
                     EditorSceneManager.playModeStartScene = scene;
                 EditorApplication.EnterPlaymode();
-                _findStart = (float)EditorApplication.timeSinceStartup;
             }
         }
 

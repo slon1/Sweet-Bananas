@@ -10,6 +10,8 @@ namespace SweetBananas.Core
         [SerializeField] ThrowController _throwController;
         [SerializeField] Ribbon _ribbon;
         [SerializeField] RibbonMesh _ribbonMesh;
+        [SerializeField] TargetHolder _target;
+        [SerializeField] LevelRules _levelRules;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         [SerializeField] SweetBananas.Game.Debug.SpikeOverlay _spikeOverlay;
 #endif
@@ -21,6 +23,10 @@ namespace SweetBananas.Core
             Container.Bind<ThrowController>().FromInstance(_throwController).AsSingle();
             Container.Bind<Ribbon>().FromInstance(_ribbon).AsSingle();
             Container.Bind<RibbonMesh>().FromInstance(_ribbonMesh).AsSingle();
+            if (_target != null)
+                Container.Bind<TargetHolder>().FromInstance(_target).AsSingle();
+            if (_levelRules != null)
+                Container.Bind<LevelRules>().FromInstance(_levelRules).AsSingle();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (_spikeOverlay != null)
                 Container.Bind<SweetBananas.Game.Debug.SpikeOverlay>().FromInstance(_spikeOverlay).AsSingle();

@@ -66,10 +66,31 @@ namespace SweetBananas.Game
             ResetToSpawn();
         }
 
+        public void SetFrozen(bool frozen)
+        {
+            if (!_built)
+                return;
+
+            var mode = frozen ? RigidbodyType2D.Kinematic : RigidbodyType2D.Dynamic;
+            for (int i = 0; i < _bodies.Count; i++)
+            {
+                Rigidbody2D body = _bodies[i];
+                if (body == null)
+                    continue;
+                body.bodyType = mode;
+                if (frozen)
+                {
+                    body.linearVelocity = Vector2.zero;
+                    body.angularVelocity = 0f;
+                }
+            }
+        }
+
         public void ResetToSpawn(float? fraction = null)
         {
             if (!_built)
                 Build();
+            SetFrozen(false);
             if (_throw != null)
                 _throw.SnapRest();
             PlaceAlongStick(fraction ?? ActiveConfig.RibbonSpawnFraction);

@@ -1,4 +1,5 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
+using SweetBananas.Core;
 using SweetBananas.Data;
 using Unity.Profiling;
 using UnityEngine;
@@ -14,9 +15,12 @@ namespace SweetBananas.Game.Debug
         GameConfig _config;
         Ribbon _ribbon;
         Lollipop _lollipop;
+        LevelRules _levelRules;
+        GameFlow _flow;
         Text _fps;
         Text _frame;
         Text _physics;
+        Text _status;
         ProfilerRecorder _physicsStep;
         float _fpsAccum;
         int _fpsFrames;
@@ -25,11 +29,18 @@ namespace SweetBananas.Game.Debug
         public bool AutoResetEnabled { get; set; } = true;
 
         [Inject]
-        public void Construct(GameConfig config, Ribbon ribbon, Lollipop lollipop)
+        public void Construct(
+            GameConfig config,
+            Ribbon ribbon,
+            Lollipop lollipop,
+            LevelRules levelRules,
+            GameFlow flow)
         {
             _config = config;
             _ribbon = ribbon;
             _lollipop = lollipop;
+            _levelRules = levelRules;
+            _flow = flow;
         }
 
         void OnEnable()
@@ -67,7 +78,7 @@ namespace SweetBananas.Game.Debug
             panelRect.anchorMax = new Vector2(0f, 1f);
             panelRect.pivot = new Vector2(0f, 1f);
             panelRect.anchoredPosition = new Vector2(24f, -24f);
-            panelRect.sizeDelta = new Vector2(520f, 280f);
+            panelRect.sizeDelta = new Vector2(520f, 316f);
 
             var bg = panel.AddComponent<Image>();
             bg.color = new Color(0f, 0f, 0f, 0.45f);
@@ -76,6 +87,7 @@ namespace SweetBananas.Game.Debug
             _fps = MakeText(panel.transform, font, 0);
             _frame = MakeText(panel.transform, font, 1);
             _physics = MakeText(panel.transform, font, 2);
+            _status = MakeText(panel.transform, font, 3);
             MakeButton(panel.transform, font);
         }
 
@@ -99,24 +111,15 @@ namespace SweetBananas.Game.Debug
                 if (_recorderReady && _physicsStep.Count > 0)
                     stepMs = (float)(_physicsStep.LastValue / 1e6);
                 _physics.text = "Physics " + stepMs.ToString("0.000") + " ms";
+                if (_status != null && _flow != null)
+                {
+                    int fails = _levelRules != null ? _levelRules.FailCount : 0;
+                    _status.text = "State: " + _flow.State + "  Fails: " + fails;
+                }
+
                 _fpsAccum = 0f;
                 _fpsFrames = 0;
             }
-        }
-
-        void FixedUpdate()
-        {
-            if (!AutoResetEnabled || _ribbon == null || _lollipop == null || _config == null)
-                return;
-            if (_ribbon.Bodies.Count == 0)
-                return;
-
-            Vector2 center = _ribbon.Center;
-            float failY = -_config.FailMarginUnits;
-            float minX = -_config.FailMarginUnits;
-            float maxX = _config.WorldWidthUnits + _config.FailMarginUnits;
-            if (center.y < failY || center.x < minX || center.x > maxX)
-                _ribbon.ResetToSpawn();
         }
 
         static Text MakeText(Transform parent, Font font, int row)
@@ -153,7 +156,7 @@ namespace SweetBananas.Game.Debug
             image.color = new Color(0.95f, 0.35f, 0.55f, 1f);
             var button = go.AddComponent<Button>();
             button.targetGraphic = image;
-            button.onClick.AddListener(() => _ribbon.ResetToSpawn());
+            button.onClick.AddListener(OnRestartClicked);
 
             var labelGo = new GameObject("Label", typeof(RectTransform));
             labelGo.transform.SetParent(go.transform, false);
@@ -169,6 +172,14 @@ namespace SweetBananas.Game.Debug
             label.alignment = TextAnchor.MiddleCenter;
             label.text = "Restart";
             label.raycastTarget = false;
+        }
+
+        void OnRestartClicked()
+        {
+            if (_levelRules != null)
+                _levelRules.Restart();
+            else if (_ribbon != null)
+                _ribbon.ResetToSpawn();
         }
     }
 }

@@ -46,12 +46,13 @@ namespace SweetBananas.Editor.SpikeBench
             float rRest = float.NaN,
             float slideTime = float.NaN,
             float gapStoppedMax = float.NaN,
-            int nanThrow = 0)
+            int nanThrow = 0,
+            float rStoppedMin = float.NaN)
         {
             if (!_headerWritten)
             {
                 _writer.WriteLine(
-                    "experiment_id,throw_index,kind,time_scale,spawn_fraction,press_duration_sec,spawn_clearance_step0,spawn_invalid,spawn_angle,spawn_fixed_steps,hinge_slack_max,max_gap,a10_break,gap_phase,max_speed,r_min_throw,r_min_phase,held_seconds,first_gap_085_step,first_gap_085_value,first_gap_021_step,first_gap_021_value,first_gap_021_pair,fixed_steps,r_rest,slide_time,gap_stopped_max,nan_throw");
+                    "experiment_id,throw_index,kind,time_scale,spawn_fraction,press_duration_sec,spawn_clearance_step0,spawn_invalid,spawn_angle,spawn_fixed_steps,hinge_slack_max,max_gap,a10_break,gap_phase,max_speed,r_min_throw,r_min_phase,held_seconds,first_gap_085_step,first_gap_085_value,first_gap_021_step,first_gap_021_value,first_gap_021_pair,fixed_steps,r_rest,slide_time,gap_stopped_max,r_stopped_min,nan_throw");
                 _headerWritten = true;
             }
 
@@ -83,6 +84,7 @@ namespace SweetBananas.Editor.SpikeBench
                 float.IsNaN(rRest) ? "" : rRest.ToString(CultureInfo.InvariantCulture),
                 float.IsNaN(slideTime) ? "" : slideTime.ToString(CultureInfo.InvariantCulture),
                 float.IsNaN(gapStoppedMax) ? "" : gapStoppedMax.ToString(CultureInfo.InvariantCulture),
+                float.IsNaN(rStoppedMin) ? "" : rStoppedMin.ToString(CultureInfo.InvariantCulture),
                 nanThrow.ToString(CultureInfo.InvariantCulture)));
         }
 

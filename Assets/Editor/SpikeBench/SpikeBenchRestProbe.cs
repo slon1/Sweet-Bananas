@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
@@ -25,10 +26,9 @@ namespace SweetBananas.Editor.SpikeBench
         static Phase _state = Phase.Idle;
         static int _fractionIndex;
         static int _stepCount;
-        static int _holdPhase;
-        static float _slideStartAlong;
         static float _tipReachTime = float.NaN;
-        static Vector2 _centerStart;
+        static float _rRestAt1s = float.NaN;
+        static readonly List<float> _holdSpeedSamples = new();
         static ThrowController _throw;
         static Ribbon _ribbon;
         static Lollipop _lollipop;
@@ -36,8 +36,10 @@ namespace SweetBananas.Editor.SpikeBench
         static GameConfig _config;
         static StreamWriter _csv;
         static string _runId;
+        static float _friction;
         static bool _playBegun;
         static float _findStart;
+        static Action<string> _onComplete;
 
         public static bool IsRunning => _state != Phase.Idle;
 
@@ -46,7 +48,26 @@ namespace SweetBananas.Editor.SpikeBench
         {
             if (IsRunning || SpikeBenchSession.IsRunning)
                 return;
-            Start();
+            Start(0.4f, null);
+        }
+
+        public static void Start(float stickFriction, Action<string> onComplete)
+        {
+            _friction = stickFriction;
+            _onComplete = onComplete;
+            _runId = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
+            _fractionIndex = 0;
+            _playBegun = false;
+            _state = Phase.WaitScene;
+            _findStart = (float)EditorApplication.timeSinceStartup;
+            EditorApplication.update += Tick;
+            if (!Application.isPlaying)
+            {
+                var scene = AssetDatabase.LoadAssetAtPath<SceneAsset>("Assets/Scenes/Scene.unity");
+                if (scene != null)
+                    EditorSceneManager.playModeStartScene = scene;
+                EditorApplication.EnterPlaymode();
+            }
         }
 
         public static void Stop()
@@ -67,23 +88,6 @@ namespace SweetBananas.Editor.SpikeBench
             _state = Phase.Idle;
         }
 
-        static void Start()
-        {
-            _runId = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
-            _fractionIndex = 0;
-            _playBegun = false;
-            _state = Phase.WaitScene;
-            EditorApplication.update += Tick;
-            if (!Application.isPlaying)
-            {
-                var scene = AssetDatabase.LoadAssetAtPath<SceneAsset>("Assets/Scenes/Scene.unity");
-                if (scene != null)
-                    EditorSceneManager.playModeStartScene = scene;
-                EditorApplication.EnterPlaymode();
-                _findStart = (float)EditorApplication.timeSinceStartup;
-            }
-        }
-
         static void Begin()
         {
             Time.timeScale = 1f;
@@ -100,12 +104,16 @@ namespace SweetBananas.Editor.SpikeBench
                 return;
             }
 
+            LevelRules rules = UnityEngine.Object.FindAnyObjectByType<LevelRules>();
+            rules?.DebugSetEnabled(false);
+
             SpikeBenchMethodology.EnsureLogDirectory();
             string path = Path.Combine(SpikeBenchMethodology.LogDirectory(),
-                $"rest_probe_{SpikeBenchMethodology.DefaultSeed}_{_runId}.csv");
+                $"rest_probe_f{_friction:F2}_{SpikeBenchMethodology.DefaultSeed}_{_runId}.csv");
             _csv = new StreamWriter(path, false, Encoding.UTF8);
-            _csv.WriteLine("experiment_id,row_index,kind,time_scale,spawn_fraction,r_rest_at_1s,slide_time_sec,center_slide_along_1s,slide_v_1s_hold,slide_v_2s_hold");
+            _csv.WriteLine("stick_friction,row_index,kind,spawn_fraction,r_rest_at_1s,slide_time_sec,slide_v_1s_hold,slide_v_2s_hold");
             _overlay.AutoResetEnabled = false;
+            _lollipop.DebugSetStickFriction(_friction);
             _throw.DebugSetDrive(true);
             _throw.DebugFixedStep += OnStep;
             BeginFractionRest();
@@ -119,8 +127,7 @@ namespace SweetBananas.Editor.SpikeBench
             _throw.DebugResetFixedSteps();
             _stepCount = 0;
             _tipReachTime = float.NaN;
-            _centerStart = _ribbon.Center;
-            _slideStartAlong = ProjectAlongStick(_centerStart);
+            _rRestAt1s = float.NaN;
             _throw.DebugSetHeld(false);
             _state = Phase.RestSettle;
         }
@@ -130,77 +137,108 @@ namespace SweetBananas.Editor.SpikeBench
             if (_state == Phase.RestSettle)
             {
                 _stepCount++;
+                float dt = Time.fixedDeltaTime;
                 float along = ProjectAlongStick(_ribbon.Center);
                 float stickEnd = _lollipop.StickLength;
                 if (float.IsNaN(_tipReachTime) && along >= stickEnd - 0.05f)
-                    _tipReachTime = _stepCount * Time.fixedDeltaTime;
+                    _tipReachTime = _stepCount * dt;
 
-                int steps1s = Mathf.CeilToInt(1f / Time.fixedDeltaTime);
-                if (_stepCount < steps1s)
-                    return;
+                int steps1s = Mathf.CeilToInt(1f / dt);
+                int steps8s = Mathf.CeilToInt(8f / dt);
+                if (_stepCount == steps1s)
+                    _rRestAt1s = SpikeBenchMeasurements.ComputeR(_ribbon);
 
-                float rRest = SpikeBenchMeasurements.ComputeR(_ribbon);
-                float slideAlong = along - _slideStartAlong;
-                WriteRow("rest_idle", rRest, _tipReachTime, slideAlong, float.NaN, float.NaN);
-                BeginHoldSlide(frac: SpikeBenchMethodology.SpawnFractions[_fractionIndex]);
+                bool tipDone = !float.IsNaN(_tipReachTime) || _stepCount >= steps8s;
+                if (_stepCount >= steps1s && tipDone)
+                {
+                    if (_stepCount >= steps8s && float.IsNaN(_tipReachTime))
+                        _tipReachTime = float.NaN;
+                    BeginHoldSlide();
+                }
+
                 return;
             }
 
             if (_state == Phase.HoldSlide)
             {
                 _stepCount++;
-                int s1 = Mathf.CeilToInt(1f / Time.fixedDeltaTime);
-                int s2 = Mathf.CeilToInt(2f / Time.fixedDeltaTime);
-                if (_stepCount == s1)
+                _holdSpeedSamples.Add(StickProjectedSpeed());
+                int steps2s = Mathf.CeilToInt(2f / Time.fixedDeltaTime);
+                int tail = Mathf.CeilToInt(0.1f / Time.fixedDeltaTime);
+                if (_stepCount < steps2s + tail)
+                    return;
+
+                float v1 = AverageAroundHoldSecond(1f);
+                float v2 = AverageAroundHoldSecond(2f);
+                WriteHoldRow(v1, v2);
+                _fractionIndex++;
+                if (_fractionIndex >= SpikeBenchMethodology.SpawnFractions.Length)
                 {
-                    float v = (ProjectAlongStick(_ribbon.Center) - _slideStartAlong) / 1f;
-                    _holdV1 = v;
+                    Complete();
+                    return;
                 }
 
-                if (_stepCount == s2)
-                {
-                    float v2 = (ProjectAlongStick(_ribbon.Center) - _holdV1Marker) / 1f;
-                    WriteRow("hold_0deg", SpikeBenchMeasurements.ComputeR(_ribbon), float.NaN, 0f, _holdV1, v2);
-                    _fractionIndex++;
-                    if (_fractionIndex >= SpikeBenchMethodology.SpawnFractions.Length)
-                    {
-                        Complete();
-                        return;
-                    }
-
-                    BeginFractionRest();
-                }
+                BeginFractionRest();
             }
         }
 
-        static float _holdV1;
-        static float _holdV1Marker;
-
-        static void BeginHoldSlide(float frac)
+        static void BeginHoldSlide()
         {
+            float frac = SpikeBenchMethodology.SpawnFractions[_fractionIndex];
             _ribbon.ResetToSpawn(frac);
             _throw.SnapRest();
             _throw.DebugResetFixedSteps();
             _stepCount = 0;
-            _slideStartAlong = ProjectAlongStick(_ribbon.Center);
-            _holdV1Marker = _slideStartAlong;
+            _holdSpeedSamples.Clear();
             _throw.DebugSetHeld(true);
             _state = Phase.HoldSlide;
         }
 
-        static void WriteRow(string kind, float rRest, float slideTime, float centerSlide, float v1, float v2)
+        static void WriteHoldRow(float v1, float v2)
         {
             _csv.WriteLine(string.Join(",",
-                "rest_probe",
+                _friction.ToString(CultureInfo.InvariantCulture),
                 _fractionIndex.ToString(CultureInfo.InvariantCulture),
-                kind,
-                "1",
+                "hold_0deg",
                 SpikeBenchMethodology.SpawnFractions[_fractionIndex].ToString(CultureInfo.InvariantCulture),
-                rRest.ToString(CultureInfo.InvariantCulture),
-                float.IsNaN(slideTime) ? "" : slideTime.ToString(CultureInfo.InvariantCulture),
-                centerSlide.ToString(CultureInfo.InvariantCulture),
-                float.IsNaN(v1) ? "" : v1.ToString(CultureInfo.InvariantCulture),
-                float.IsNaN(v2) ? "" : v2.ToString(CultureInfo.InvariantCulture)));
+                float.IsNaN(_rRestAt1s) ? "" : _rRestAt1s.ToString(CultureInfo.InvariantCulture),
+                float.IsNaN(_tipReachTime) ? "" : _tipReachTime.ToString(CultureInfo.InvariantCulture),
+                v1.ToString(CultureInfo.InvariantCulture),
+                v2.ToString(CultureInfo.InvariantCulture)));
+        }
+
+        static float StickProjectedSpeed()
+        {
+            Vector2 dir = _lollipop.StickDirection();
+            float sum = 0f;
+            int n = 0;
+            foreach (Rigidbody2D body in _ribbon.Bodies)
+            {
+                if (body == null)
+                    continue;
+                sum += Vector2.Dot(body.linearVelocity, dir);
+                n++;
+            }
+
+            return n == 0 ? 0f : Mathf.Abs(sum / n);
+        }
+
+        static float AverageAroundHoldSecond(float seconds)
+        {
+            float dt = Time.fixedDeltaTime;
+            int center = Mathf.RoundToInt(seconds / dt);
+            int window = Mathf.Max(1, Mathf.RoundToInt(0.1f / dt));
+            float sum = 0f;
+            int count = 0;
+            for (int i = center - window; i <= center + window; i++)
+            {
+                if (i < 0 || i >= _holdSpeedSamples.Count)
+                    continue;
+                sum += _holdSpeedSamples[i];
+                count++;
+            }
+
+            return count == 0 ? float.NaN : sum / count;
         }
 
         static float ProjectAlongStick(Vector2 world)
@@ -213,14 +251,18 @@ namespace SweetBananas.Editor.SpikeBench
         static void Complete()
         {
             string csvPath = Path.Combine(SpikeBenchMethodology.LogDirectory(),
-                $"rest_probe_{SpikeBenchMethodology.DefaultSeed}_{_runId}.csv");
+                $"rest_probe_f{_friction:F2}_{SpikeBenchMethodology.DefaultSeed}_{_runId}.csv");
             _csv?.Flush();
             _csv?.Dispose();
             _csv = null;
             WriteSummaryTable(csvPath);
-            Debug.Log("SpikeBench Rest Probe complete.");
+            Debug.Log("SpikeBench Rest Probe complete: friction=" + _friction);
+            var complete = _onComplete;
+            _onComplete = null;
             Stop();
-            EditorApplication.ExitPlaymode();
+            complete?.Invoke(csvPath);
+            if (complete == null)
+                EditorApplication.ExitPlaymode();
         }
 
         static void WriteSummaryTable(string csvPath)
@@ -228,18 +270,19 @@ namespace SweetBananas.Editor.SpikeBench
             if (!File.Exists(csvPath))
                 return;
             var sb = new StringBuilder();
-            sb.AppendLine("fraction\ttip_reach_s\tr_rest@1s\tslide_v_1s\tslide_v_2s");
+            sb.AppendLine("friction\trow\tfraction\ttip_reach_s\tr_rest@1s\tslide_v_1s\tslide_v_2s");
             foreach (string line in File.ReadAllLines(csvPath))
             {
-                if (line.StartsWith("experiment", StringComparison.Ordinal))
+                if (line.StartsWith("stick", StringComparison.Ordinal))
                     continue;
                 string[] p = line.Split(',');
-                if (p.Length < 10)
+                if (p.Length < 8)
                     continue;
-                sb.AppendLine(string.Join("\t", p[4], p[6], p[5], p[8], p[9]));
+                sb.AppendLine(string.Join("\t", p[0], p[1], p[3], p[5], p[4], p[6], p[7]));
             }
 
-            string outPath = Path.Combine(SpikeBenchMethodology.LogDirectory(), "rest_probe_table_J25.txt");
+            string outPath = Path.Combine(SpikeBenchMethodology.LogDirectory(),
+                $"rest_probe_f{_friction:F2}_table.txt");
             File.WriteAllText(outPath, sb.ToString());
         }
 

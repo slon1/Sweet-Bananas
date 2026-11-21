@@ -43,6 +43,16 @@ namespace SweetBananas.Game
             if (_head != null)
                 _head.enabled = enabled;
         }
+
+        public void DebugSetStickFriction(float friction)
+        {
+            if (_stickMaterial == null)
+                _stickMaterial = new PhysicsMaterial2D("StickFriction");
+            _stickMaterial.friction = friction;
+            _stickMaterial.bounciness = 0f;
+            if (_stick != null)
+                _stick.sharedMaterial = _stickMaterial;
+        }
 #endif
 
         [Inject]
