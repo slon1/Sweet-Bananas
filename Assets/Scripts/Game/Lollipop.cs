@@ -52,6 +52,8 @@ namespace SweetBananas.Game
             _stickMaterial.bounciness = 0f;
             if (_stick != null)
                 _stick.sharedMaterial = _stickMaterial;
+            if (_head != null)
+                _head.sharedMaterial = _stickMaterial;
         }
 #endif
 
@@ -192,6 +194,8 @@ namespace SweetBananas.Game
             _stickMaterial.friction = _config.StickFriction;
             _stickMaterial.bounciness = 0f;
             _stick.sharedMaterial = _stickMaterial;
+            if (_head != null)
+                _head.sharedMaterial = _stickMaterial;
         }
     }
 }

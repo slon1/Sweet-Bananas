@@ -27,9 +27,8 @@
 - Этап 0: принят (`TASK-000: environment check`).
 - Этап 1: принят с замечаниями (`docs: architect documents`, `TASK-001: project skeleton`).
 - Этап 2a (подготовка): принят полностью (`TASK-002a: skeleton fixes`, `0f6c9ced`). Play и Game view на 1080×1920 / 2160 / 2340 подтверждены оператором.
-- Docs: `Task/TASK-002c-docs-cleanup.md` и `Task/TASK-002d-docs-after-26.md` (Composer).
-- Этап 2A: `Task/TASK-002-A-lollipop-ribbon.md` + `Adr/ADR-003-a1-amendment.md` (Grok), после docs-задач.
-- Этап 2B: `Task/TASK-002-B-target-rules.md` (Grok), после принятия 2A.
+- Этап 2A: принят (TASK-002-A, TASK-002-A2; закрыт по ADR-003-a6).
+- Этап 2B: цель и LevelRules приняты (TASK-002-B); играбельность — TASK-002-B2 (ADR-003-a7). Сборка Android и D24.10 — оператор.
 
 ## Модели Cursor
 Каждое ТЗ содержит пометку «Модель для оператора». Grok — интеллектуальные и проектные задачи, Composer — технические и механические (дешевле).
